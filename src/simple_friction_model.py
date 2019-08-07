@@ -35,16 +35,22 @@ def get_data():
     data['friction_values'] = friction_value
     return data
 
-def friction_model(X, c0, c1, c2, c3, c4):
-        f = 1*c0 + X[0]*c1 + X[1]*c2 + X[2]*c3 + X[3]*c4
+def linear_friction_model(X, c0, c1, c2, c3, c4):
+        #f = np.dot(X, params)     # verbose form in case of regression interface
+        f = X[0]*c0 + X[1]*c1 + X[2]*c2 + X[3]*c3 + X[4]*c4
+        return f
+
+def nonlinear_friction_model(X, c0, c1, c2, c3, c4):
+        f = X[0]*c0 + X[1]*c1 + X[2]*c2 + X[3]*c3 + X[4]*c4
         return f
 
 def compute_loss(friction_label, X, params):
     c0, c1, c2, c3, c4 = params[0], params[1], params[2], params[3], params[4]
-    friction_predicted = friction_model(X, c0, c1, c2, c3, c4)
-    losses = np.abs(friction_label-friction_predicted)
-    print("Loss:", losses.sum())
-    return friction_predicted, params, losses
+    friction_predicted = linear_friction_model(X, c0, c1, c2, c3, c4)
+    loss = friction_predicted - friction_label
+    J = np.sum(loss**2)/(2*X.shape[1])   #cost function
+    print("Loss:", loss.sum())
+    return loss, J, friction_predicted, params
 
 def visual():
     if VISUALIZATION:
@@ -52,7 +58,7 @@ def visual():
         ax = Axes3D(fig)
         ax.plot_trisurf(data['v'], data['Temp'], friction_label, cmap='summer', alpha=0.9, label='label')
         ax.plot_trisurf(data['v'], data['Temp'], friction_predicted, cmap='winter', alpha=0.5, label='predicted')
-        ax.plot_trisurf(data['v'], data['Temp'], losses, cmap='hot', alpha=0.1, label='error')
+        ax.plot_trisurf(data['v'], data['Temp'], loss, cmap='hot', alpha=0.1, label='error')
         ax.scatter3D(data['v'], data['Temp'], friction_label, color='k')
         ax.set_xlabel('v(rad/s)',fontsize =20)
         ax.set_ylabel('Temp(degree)',fontsize =20)
@@ -69,24 +75,24 @@ if __name__ == "__main__":
 
     #Do polyfit:
     X = np.array([data['v'], data['tao_f'], data['Temp'], data['q']])
-    #X = np.insert(X, 0, 1, axis=0)
-    popt, pcov = curve_fit(friction_model, X, friction_label)
+    X = np.insert(X, 0, 1, axis=0)
+    popt, pcov = curve_fit(linear_friction_model, X, friction_label)
     print(popt)
-    sys.exit()
+    #sys.exit()
     
-    #Do SGD: 
+    #Do BGD:
     params = np.array([1, 2, 3, 4, 5]) 
-    #update_params()
+    batch_size = data.shape[0]
+    lr = 0.1
     fig=plt.figure()
     while True:
         print(np.round(params, 4))
-        friction_predicted, params, losses = compute_loss(friction_label, X, params)
+        loss, J, friction_predicted, params = compute_loss(friction_label, X, params)
         c0, c1, c2, c3, c4 = params
-        lr = 0.01/data.shape[0]
-        #embed()
-        params = params - lr*sum((friction_label-friction_predicted)*friction_predicted*(1-friction_predicted))*(data.values[:,:5].mean(axis=0))
-        #if lr*losses.sum()*0.1<1e-5:
-           # break
+        gradients = np.dot(X, loss)/batch_size
+        params = params - lr*gradients
+        if max(lr*gradients)<1e-5:
+            break
         visual()
         #input()
 
