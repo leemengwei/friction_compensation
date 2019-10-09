@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--mode', '-M', default='linear')
     parser.add_argument('--learning_rate', '-LR', type=float, default=0.01)
-    parser.add_argument('--test_ratio', '-TR', type=float, default=0.4)
+    parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
     parser.add_argument('--criterion', '-C', type=float, default=1e-5)
     parser.add_argument('--max_epoch', '-E', type=int, default=100)
 
