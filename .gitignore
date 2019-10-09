@@ -102,3 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+*.rec-data.prb-log
+*.rec-data
+*.prb-log
+*.csv
+*.7z
+*.tar
+*.gz
+*.zip
