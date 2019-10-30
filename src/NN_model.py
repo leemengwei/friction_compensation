@@ -3,8 +3,8 @@ import torch.nn as nn
 class NeuralNet(nn.Module):
     def __init__(self, input_size, hidden_size, hidden_depth, output_size, device):
         super(NeuralNet, self).__init__()
-        self.fc_first1 = nn.Linear(input_size, 10)
-        self.fc_first2 = nn.Linear(10, hidden_size)
+        self.fc_first1 = nn.Linear(input_size, hidden_size*2)
+        self.fc_first2 = nn.Linear(hidden_size*2, hidden_size)
         self.hidden_depth = hidden_depth
         self.fc_last1 = nn.Linear(hidden_size, 10)
         self.fc_last2 = nn.Linear(10, output_size)

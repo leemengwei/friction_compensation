@@ -28,23 +28,31 @@ import torch.optim as optim
 import torch.nn.functional as F
 torch.manual_seed(44)
 
-plt.ion()
 DEBUG = False
 DEBUG = True
 epsilon = 1e-10
 
-def evaluate_error_rate(outputs, data, normer, showup=False):
+def evaluate_error_rate(outputs, targets, normer, raw_data, showup=False):
     outputs = normer.denormlize(outputs)
+    targets = normer.denormlize(targets)
     value_threshold = 0.01
-    low_value_region = np.where(np.abs(data['servo_feedback_torque_3'])<value_threshold)
-    high_value_region = np.where(np.abs(data['servo_feedback_torque_3'])>=value_threshold)
+
+    _plan = raw_data['axc_torque_ffw_gravity_%s'%args.axis_num].values
+    _compensate = outputs
+    _meassure = raw_data['servo_feedback_torque_%s'%args.axis_num].values  #same as plan+target
+
+    low_value_region = np.where(np.abs(_meassure)<value_threshold)
+    high_value_region = np.where(np.abs(_meassure)>=value_threshold)
+   
+    error_rate_low = np.abs((_plan[low_value_region] + _compensate[low_value_region] - _meassure[low_value_region])/(_meassure[low_value_region]+epsilon)).mean()*100
+    error_rate_high = np.abs((_plan[high_value_region] + _compensate[high_value_region] - _meassure[high_value_region])/(_meassure[high_value_region]+epsilon)).mean()*100
     if args.VISUALIZATION and showup:
-        plt.hist(data['servo_feedback_torque_3'].values[low_value_region], bins=50)
-        plt.hist(data['servo_feedback_torque_3'].values[high_value_region], bins=1000)
-        plt.title("Split of feedback (as denominator)")
+        bins = np.linspace(targets.min(), targets.max(), 1000)
+        plt.hist(_meassure[low_value_region], bins=bins, color='gray', label="low values")
+        plt.hist(_meassure[high_value_region], bins=bins, color='black', label='high values')
+        plt.title("High/Low value seperation in val set")
+        plt.legend()
         plt.show()
-    error_rate_low = np.abs((data.iloc[low_value_region]['axc_torque_ffw_gravity_3'] + outputs[low_value_region] - data.iloc[low_value_region]['servo_feedback_torque_3'])/(data.iloc[low_value_region]['servo_feedback_torque_3']+epsilon)).mean()*100
-    error_rate_high = np.abs((data.iloc[high_value_region]['axc_torque_ffw_gravity_3'] + outputs[high_value_region] - data.iloc[high_value_region]['servo_feedback_torque_3'])/(data.iloc[high_value_region]['servo_feedback_torque_3']+epsilon)).mean()*100
     return (error_rate_low, error_rate_high)
 
 
@@ -81,6 +89,25 @@ def validate(args, model, device, validate_loader):
     validate_loss_mean = LOSS/len(validate_loader.dataset)
     return validate_loss_mean, output, target
 
+def split_dataset(X, Y, raw_data):
+    all_index = list(range(len(Y)))
+    val_index = list(range(int(len(Y)*(0.5-args.test_ratio/2)), int(len(Y)*(0.5+args.test_ratio/2))))
+    train_index = list(set(all_index) - set(val_index))
+    X_train = X[:, train_index]
+    Y_train = Y[train_index]
+    X_val = X[:, val_index]
+    Y_val = Y[val_index]
+    if args.VISUALIZATION:
+        plt.scatter(np.array(range(len(Y)))[train_index][::10], Y_train[::10], s=0.5, label="train")
+        plt.scatter(np.array(range(len(Y)))[val_index][::10], Y_val[::10], s=0.5, label="val")
+        plt.xlabel("Sample points")
+        plt.ylabel("Forces need to compensate")
+        plt.title("Split of rain and val set")
+        plt.legend()
+        plt.show()
+    raw_data_train = raw_data.iloc[train_index]
+    raw_data_val = raw_data.iloc[val_index]
+    return X_train, Y_train, X_val, Y_val, raw_data_train, raw_data_val
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
@@ -92,26 +119,33 @@ if __name__ == "__main__":
 
     parser.add_argument('--hidden_width_scaler', type=int, default = 10)
     parser.add_argument('--hidden_depth', type=int, default = 3)
+    parser.add_argument('--axis_num', type=int, default = 4)
     parser.add_argument('--Cuda_number', type=int, default = 0)
-    parser.add_argument('--num_of_batch', type=int, default=10)
+    parser.add_argument('--num_of_batch', type=int, default=100)
     parser.add_argument('--log_interval', type=int, default=100)
     parser.add_argument('--VISUALIZATION', action='store_true', default=False)
+    parser.add_argument('--NO_CUDA', action='store_true', default=False)
     args = parser.parse_args()
+    args.axis_num = args.axis_num - 1
     
     print("Start...%s"%args)
     #Get data:
-    data = data_stuff.get_standarlized_data()
-    batch_size = data.shape[0]
-    Y = data['need_to_compensate']
-    #Input variables for models:
-    #When in plan we only have:
-    _X_planned = np.array([data['axc_speed_3'], data['axc_torque_ffw_gravity_3'], data['Temp'], data['axc_pos_3']])   #TODO: this is axis 4
-    #In use we MUST have real_time_feedback, compensate from axc_torque to feedback_torque:
-    _X_feedbacked = np.array([data['servo_feedback_speed_3'], data['axc_torque_ffw_gravity_3'], data['Temp'], data['servo_feedback_pos_3']])  #TODO: this is for axis 4
-    X = np.insert(_X_feedbacked, 0, 1, axis=0)
-    normer = data_stuff.normalizer(X, Y)
-    X, Y = normer.normalize(X, Y)
-    #embed()
+    raw_data = data_stuff.get_useful_data()
+    data_Y = raw_data['need_to_compensate'].values
+
+    #Take variables we concerned:
+    #Use planned data:
+    data_X = np.array([raw_data['axc_speed_%s'%args.axis_num], raw_data['axc_torque_ffw_gravity_%s'%args.axis_num], raw_data['Temp'], raw_data['axc_pos_%s'%args.axis_num]])   #TODO: this is axis 4
+    #Use real-time data:
+    #data_X = np.array([raw_data['servo_feedback_speed_%s'%args.axis_num], raw_data['axc_torque_ffw_gravity_%s'%args.axis_num], raw_data['Temp'], raw_data['servo_feedback_pos_%s'%args.axis_num]])  #TODO: this is for axis 4
+
+    poly_data_X = np.insert(data_X, 0, 1, axis=0)
+    #Normalize data:
+    normer = data_stuff.normalizer(poly_data_X, data_Y)
+    poly_X_normed, Y_normed = normer.normalize(poly_data_X, data_Y)
+
+    #mannual split dataset:
+    X_train, Y_train, X_val, Y_val, raw_data_train, raw_data_val = split_dataset(poly_X_normed, Y_normed, raw_data)
 
     #---------------------------------Do polyfit---------------------------:
     #Init unknown params:
@@ -119,22 +153,20 @@ if __name__ == "__main__":
         names_note = ['c0', 'c1', 'c2', 'c3', 'c4']
         params = np.array([-1.83062977e-09, 1.50000000e+00, 6.82213855e-09, 3.00000000e+00, -4.12101372e-09])
         params = np.array([1,1,1,1,1])
-        opt, cov = curve_fit(classical_model.linear_friction_model, X, Y, maxfev=500000)
+        opt, cov = curve_fit(classical_model.linear_friction_model, X_train, Y_train, maxfev=500000)
     else:
         names_note = ['c0', 'v_brk', 'F_brk', 'F_C', 'c1', 'c2', 'c3', 'c4']
         params = np.array([-1.78197004e-09, 1.99621299e+00, 9.82765471e-08, -6.02984398e-09, 1.49999993e+00, 1.78627117e-09, 5.00000000e+00, 2.69899575e-09])
         params = np.array([1,1,1,1,1,1,1,1])
-        opt, cov = curve_fit(classical_model.nonlinear_friction_model, X, Y, maxfev=500000)
-    poly_loss, _J, poly_friction_predicted, _, _ = classical_model.compute_loss(Y, X, opt, args)
-    error_ratio = evaluate_error_rate(poly_friction_predicted, data, normer, showup=True)
-    plot_utils.visual(Y.values, poly_friction_predicted, "poly", args, title=error_ratio)
+        opt, cov = curve_fit(classical_model.nonlinear_friction_model, X_train, Y_train, maxfev=500000)
+    poly_loss, _J, poly_friction_predicted, _, _ = classical_model.compute_loss(Y_val, X_val, opt, args)
+    error_ratio = evaluate_error_rate(poly_friction_predicted, Y_val, normer, raw_data_val, showup=True)
+    plot_utils.visual(Y_val, poly_friction_predicted, "poly", args, title=error_ratio)
     print("Names note:", names_note, 'J:', _J)
     print("Poly:", opt)
     print("Error rate:", error_ratio)
-
     #embed()
     #sys.exit()
-
     #--------------------------Do Batch gradient descent---------------------:
     #J_history = []
     #if VISUALIZATION:
@@ -164,19 +196,35 @@ if __name__ == "__main__":
     #sys.exit()
 
     #-------------------------------------Do NN--------------------------------:
-    #Data:
-    _X = _X_feedbacked.T
-    Y = Y.values.reshape(-1, 1)
-    nn_X = torch.autograd.Variable(torch.FloatTensor(_X))
-    nn_Y = torch.autograd.Variable(torch.FloatTensor(Y))
+    plt.ion()
+    #Get data:
+    raw_data = data_stuff.get_useful_data()
+    data_Y = raw_data['need_to_compensate'].values
+
+    #Take variables we concerned:
+    #Use planned data:
+    data_X = np.empty(shape=(0, len(raw_data)))
+    for i in [0,1,2,3,4,5]:
+        data_X = np.vstack((data_X, [raw_data['axc_speed_%s'%i], raw_data['axc_pos_%s'%i], raw_data['axc_torque_ffw_gravity_%s'%i], raw_data['axc_torque_ffw_%s'%i]]))
+    data_X = np.vstack((data_X, raw_data['Temp']))
+    #Use real-time data:
+    #data_X = np.empty(shape=(0, len(raw_data)))
+    #for i in [0,1,2,3,4,5]:
+    #    data_X = np.vstack((raw_data_X, [raw_data['servo_feedback_speed_%s'%i], raw_data['servo_feedback_pos_%s'%i], raw_data['axc_torque_ffw_gravity_%s'%i],  raw_data['axc_torque_ffw_%s'%i]]))
+    #data_X = np.vstack((data_X, raw_data['Temp']))
+
+    #Normalize data:
+    normer = data_stuff.normalizer(data_X, data_Y)
+    X_normed, Y_normed = normer.normalize(data_X, data_Y)
+
     #mannual split dataset:
-    all_index = list(range(len(nn_Y)))
-    val_index = list(range(int(len(nn_Y)*(0.5-args.test_ratio/2)), int(len(nn_Y)*(0.5+args.test_ratio/2))))
-    train_index = list(set(all_index) - set(val_index))
-    nn_X_train = nn_X[train_index]
-    nn_Y_train = nn_Y[train_index]
-    nn_X_val = nn_X[val_index]
-    nn_Y_val = nn_Y[val_index]
+    X_train, Y_train, X_val, Y_val, raw_data_train, raw_data_val = split_dataset(X_normed, Y_normed, raw_data)
+    nn_X_train = torch.autograd.Variable(torch.FloatTensor(X_train.T))
+    nn_Y_train = torch.autograd.Variable(torch.FloatTensor(Y_train)).reshape(-1,1)
+    nn_X_val =   torch.autograd.Variable(torch.FloatTensor(X_val.T))
+    nn_Y_val =   torch.autograd.Variable(torch.FloatTensor(Y_val)).reshape(-1,1)
+    
+    #Form pytorch dataset:
     train_dataset = Data.TensorDataset(nn_X_train, nn_Y_train)
     validate_dataset = Data.TensorDataset(nn_X_val, nn_Y_val)
     train_loader = Data.DataLoader( 
@@ -196,41 +244,59 @@ if __name__ == "__main__":
             pin_memory=True
             )
     #Model:
-    device = torch.device("cuda", args.Cuda_number)
+    if not args.NO_CUDA:
+        device = torch.device("cuda", args.Cuda_number)
+        print("Using GPU")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU")
     #device = torch.device("cpu")
-    input_size = nn_X.shape[1]                          
-    hidden_size = nn_X.shape[1]*args.hidden_width_scaler
+    input_size = nn_X_train.shape[1]                          
+    hidden_size = nn_X_train.shape[1]*args.hidden_width_scaler
     hidden_depth = args.hidden_depth
-    output_size = nn_Y.shape[1]
+    output_size = nn_Y_train.shape[1]
     model = NN_model.NeuralNet(input_size, hidden_size, hidden_depth, output_size, device)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-    #embed()
+
     #Train and Validate:
+    print("Now training...")
     train_loss_history = []
     validate_loss_history = []
     for epoch in range(int(args.max_epoch+1)):
-        NN_friction_predicted = np.array(model.cpu()((nn_X)).detach()).reshape(-1)
-        error_ratio_val = evaluate_error_rate(NN_friction_predicted[val_index], data.iloc[val_index], normer)
-        error_ratio_train = evaluate_error_rate(NN_friction_predicted[train_index], data.iloc[train_index], normer)
-        plot_utils.visual(Y, NN_friction_predicted, 'NN', args, extra=[train_index, val_index], title=error_ratio_val)
-
+        #Test first:
+        predicted_train = np.array(model.cpu()((nn_X_train)).detach()).reshape(-1)
+        predicted_val = np.array(model.cpu()((nn_X_val)).detach()).reshape(-1)
+        error_ratio_train = evaluate_error_rate(predicted_train, nn_Y_train, normer, raw_data_train)
+        error_ratio_val = evaluate_error_rate(predicted_val, nn_Y_val, normer, raw_data_val)
+        plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val)
+        #Train/Val then:
         train_loss, train_outputs, train_targets = train(args, model, device, train_loader, optimizer, epoch)
         validate_loss, validate_outputs, validate_targets = validate(args, model, device, validate_loader)
+        #Infos:
         train_loss_history.append(train_loss)
         validate_loss_history.append(validate_loss)
         train_loss_history[0] = validate_loss_history[0]
         print("Epoch: %s"%epoch)
         print("Train set  Average loss: {:.8f}".format(train_loss), "error ratio:", error_ratio_train)
         print('Validate set Average loss: {:.8f}'.format(validate_loss), "error ratio:", error_ratio_val)
+        #embed()
     if args.VISUALIZATION:
         plt.plot(train_loss_history)
         plt.plot(validate_loss_history)
+        plt.title("Train/Val loss history")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.show()
 
     names_note = "NN weights"
     print("Names note:", names_note)
     print("NN:", "NONE")
     print("Error rate:", error_ratio)
 
+    torch.save(model, "NN.pth")
     embed()
     sys.exit()
    
+
+
+

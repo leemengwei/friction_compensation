@@ -111,3 +111,6 @@ venv.bak/
 *.tar
 *.gz
 *.zip
+
+*.pth
+*.pt
