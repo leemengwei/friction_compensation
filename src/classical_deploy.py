@@ -65,6 +65,6 @@ if __name__ == "__main__":
         plt.legend()
         plt.show()
 
-    np.savetxt("classical_compensation.txt", compensate)
+    np.savetxt("../output/classical_compensation.txt", compensate)
     print("Done")
 
