@@ -81,7 +81,7 @@ if __name__ == "__main__":
     print("Names note:", names_note, 'J:', _J)
     print("Poly:", opt)
     print("Error rate:", error_ratio)
-    np.savetxt("classical_weights", opt)
+    np.savetxt("../output/classical_weights", opt)
 
 
     #embed()

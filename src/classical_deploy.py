@@ -6,7 +6,7 @@ from IPython import embed
 import classical_model
 
 def get_model_params():
-    params = np.loadtxt("classical_weights")
+    params = np.loadtxt("../output/classical_weights")
     return params
 
 def get_compensate_force(raw_plan, stayed_plan, index_to_work_on):

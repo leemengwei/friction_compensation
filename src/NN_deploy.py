@@ -7,7 +7,7 @@ from IPython import embed
 
 
 def get_model():
-    model = torch.load("NN_weights")
+    model = torch.load("../output/NN_weights")
     return model
 
 def get_compensate_force(raw_plan, stayed_plan, index_to_work_on):

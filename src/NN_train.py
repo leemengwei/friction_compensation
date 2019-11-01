@@ -197,7 +197,7 @@ if __name__ == "__main__":
     print("NN:", "NONE")
     print("Error rate:", error_ratio_val)
 
-    torch.save(model, "NN_weights")
+    torch.save(model, "../output/NN_weights")
     #embed()
 
 
