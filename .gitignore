@@ -118,3 +118,4 @@ venv.bak/
 NN_weights*
 classical_weights*
 *.txt
+*.lua
