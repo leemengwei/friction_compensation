@@ -114,3 +114,6 @@ venv.bak/
 
 *.pth
 *.pt
+
+NN_weights*
+classical_weights*
