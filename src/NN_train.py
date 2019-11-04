@@ -65,7 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', '-M', default='linear')
     parser.add_argument('--learning_rate', '-LR', type=float, default=1e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
-    parser.add_argument('--max_epoch', '-E', type=int, default=10)
+    parser.add_argument('--max_epoch', '-E', type=int, default=100)
 
     parser.add_argument('--hidden_width_scaler', type=int, default = 1)
     parser.add_argument('--hidden_depth', type=int, default = 3)
@@ -93,15 +93,13 @@ if __name__ == "__main__":
     #Take variables we concerned:
     #Use planned data:
     data_X = np.empty(shape=(0, len(raw_data)))
+    input_columns_names = []
     for i in [0,1,2,3,4,5]:
-        data_X = np.vstack((data_X, [raw_data['axc_speed_%s'%i], raw_data['axc_pos_%s'%i], raw_data['axc_torque_ffw_gravity_%s'%i], raw_data['axc_torque_ffw_%s'%i]]))
-    data_X = np.vstack((data_X, raw_data['Temp']))
-    #Use real-time data:
-    #data_X = np.empty(shape=(0, len(raw_data)))
-    #for i in [0,1,2,3,4,5]:
-    #    data_X = np.vstack((raw_data_X, [raw_data['servo_feedback_speed_%s'%i], raw_data['servo_feedback_pos_%s'%i], raw_data['axc_torque_ffw_gravity_%s'%i],  raw_data['axc_torque_ffw_%s'%i]]))
-    #data_X = np.vstack((data_X, raw_data['Temp']))
-    data_Y = raw_data['need_to_compensate'].values
+        input_columns_names += ['axc_speed_%s'%i, 'axc_pos_%s'%i, 'axc_torque_ffw_gravity_%s'%i, 'axc_torque_ffw_%s'%i]
+    input_columns_names += ['Temp']
+    output_columns_names = ['need_to_compensate']
+    data_X = raw_data[input_columns_names].values.T
+    data_Y = raw_data[output_columns_names].values
     print("Shape of all input: %s, shape of all output: %s"%(data_X.shape, data_Y.shape))
 
     #Normalize data:
@@ -110,7 +108,8 @@ if __name__ == "__main__":
 
     #MUST CHECK INPUT DISTRIBUTION!!!!!!
     print("Must check distribution of all data!!!!")
-    plot_utils.check_input_output_distribution(X_normed, Y_normed)
+    plot_utils.check_distribution(X_normed, input_columns_names, args)
+    plot_utils.check_distribution(Y_normed.T, output_columns_names, args)
 
     #mannual split dataset:    #Don't push dataset on cuda now, do so later after form dataset_loader
     X_train, Y_train, X_val, Y_val, raw_data_train, raw_data_val = data_stuff.split_dataset(args, X_normed, Y_normed, raw_data)
@@ -119,7 +118,7 @@ if __name__ == "__main__":
     nn_X_val =   torch.autograd.Variable(torch.FloatTensor(X_val.T))
     nn_Y_val =   torch.autograd.Variable(torch.FloatTensor(Y_val)).reshape(-1,1)
     #Just for showup high/low region
-    _ = evaluate.evaluate_error_rate(args, Y_val*0, Y_val, normer, raw_data_val, showup=True)
+    _ = evaluate.evaluate_error_rate(args, Y_val.reshape(-1)*0, Y_val, normer, raw_data_val, showup=True)
     
     #Form pytorch dataset:
     train_dataset = Data.TensorDataset(nn_X_train, nn_Y_train)
@@ -197,7 +196,7 @@ if __name__ == "__main__":
     print("NN:", "NONE")
     print("Error rate:", error_ratio_val)
 
-    torch.save(model, "../output/NN_weights")
+    torch.save(model, "../model/NN_weights")
     #embed()
 
 
