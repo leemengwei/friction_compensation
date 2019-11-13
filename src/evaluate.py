@@ -19,9 +19,9 @@ def evaluate_error_rate(args, outputs, targets, normer, raw_data, showup=False):
     error_rate_high = np.abs((_plan[high_value_region] + _compensate[high_value_region] - _meassure[high_value_region])/(_meassure[high_value_region]+epsilon)).mean()*100
     if args.VISUALIZATION and showup:
         bins = np.linspace(targets.min(), targets.max(), 1000)
-        plt.hist(_meassure[low_value_region], bins=bins, color='gray', label="low values")
-        plt.hist(_meassure[high_value_region], bins=bins, color='black', label='high values')
-        plt.title("High/Low value seperation in val set")
+        plt.hist(_meassure[low_value_region], bins=bins, color='gray', label="Ignored")
+        plt.hist(_meassure[high_value_region], bins=bins, color='black', label='Taken')
+        plt.title("Val set: data taken and ignored")
         plt.legend()
         plt.show()
     if error_rate_high > 1000:

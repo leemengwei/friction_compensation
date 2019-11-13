@@ -119,3 +119,7 @@ NN_weights*
 classical_weights*
 *.txt
 *.lua
+*.png
+*.gif
+*.pkl
+*weights*

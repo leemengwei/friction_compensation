@@ -1,3 +1,13 @@
+#神经网络训练主程序：
+#输出模型文件说明：
+#同样，声明训练数据的分割方式后，（mode=匀速加速or低速高速），仍然将需要NN针对不同mode训练两个阶段的不同的模型。但此时由于迭代训练速度很慢，所以这里不再像拟合传统数学模型那样串行训练，而是进一步根据further_mode，执行一次，得到具体的关于该分割mode下哪阶段的model。
+#如下分别得到四个：
+#python NN_train.py  --mode=acc_uniform -Q --further_mode=acc
+#python NN_train.py  --mode=acc_uniform -Q --further_mode=uniform
+#python NN_train.py  --mode=low_high -Q --further_mode=low
+#python NN_train.py  --mode=low_high -Q --further_mode=high
+
+
 #coding:utf-8
 import time
 from IPython import embed
@@ -62,7 +72,6 @@ def validate(args, model, device, validate_loader):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
-    parser.add_argument('--mode', '-M', default='linear')
     parser.add_argument('--learning_rate', '-LR', type=float, default=1e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
     parser.add_argument('--max_epoch', '-E', type=int, default=100)
@@ -76,6 +85,8 @@ if __name__ == "__main__":
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     parser.add_argument('--NO_CUDA', action='store_true', default=False)
     parser.add_argument('--Quick_data', "-Q", action='store_true', default=False)
+    parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high"], required=True)
+    parser.add_argument('--further_mode', type=str, choices=["acc", "uniform", "low", "high"], required=True)
     args = parser.parse_args()
     args.axis_num = args.axis_num - 1
     
@@ -88,18 +99,21 @@ if __name__ == "__main__":
         print("Using CPU")
     #-------------------------------------Do NN--------------------------------:
     #Get data:
-    raw_data = data_stuff.get_useful_data(args)
+    mode = ['train', args.mode]
+    raw_data, part1_index, part2_index = data_stuff.get_data(args, mode)
+    this_part = part1_index if args.further_mode=="acc" or args.further_mode=="low" else part2_index
 
     #Take variables we concerned:
-    #Use planned data:
-    data_X = np.empty(shape=(0, len(raw_data)))
+    print("PART start...%s"%args.further_mode)
+    raw_data_part = raw_data.iloc[this_part]
+    data_X = np.empty(shape=(0, len(raw_data_part)))
     input_columns_names = []
     for i in [0,1,2,3,4,5]:
         input_columns_names += ['axc_speed_%s'%i, 'axc_pos_%s'%i, 'axc_torque_ffw_gravity_%s'%i, 'axc_torque_ffw_%s'%i]
     input_columns_names += ['Temp']
     output_columns_names = ['need_to_compensate']
-    data_X = raw_data[input_columns_names].values.T
-    data_Y = raw_data[output_columns_names].values
+    data_X = raw_data_part[input_columns_names].values.T
+    data_Y = raw_data_part[output_columns_names].values
     print("Shape of all input: %s, shape of all output: %s"%(data_X.shape, data_Y.shape))
 
     #Normalize data:
@@ -107,12 +121,12 @@ if __name__ == "__main__":
     X_normed, Y_normed = normer.normalize_XY(data_X, data_Y)
 
     #MUST CHECK INPUT DISTRIBUTION!!!!!!
-    print("Must check distribution of all data!!!!")
+    print("Checking distribution of all data...")
     plot_utils.check_distribution(X_normed, input_columns_names, args)
     plot_utils.check_distribution(Y_normed.T, output_columns_names, args)
 
     #mannual split dataset:    #Don't push dataset on cuda now, do so later after form dataset_loader
-    X_train, Y_train, X_val, Y_val, raw_data_train, raw_data_val = data_stuff.split_dataset(args, X_normed, Y_normed, raw_data)
+    X_train, Y_train, X_val, Y_val, raw_data_train, raw_data_val = data_stuff.split_dataset(args, X_normed, Y_normed, raw_data_part)
     nn_X_train = torch.autograd.Variable(torch.FloatTensor(X_train.T))
     nn_Y_train = torch.autograd.Variable(torch.FloatTensor(Y_train)).reshape(-1,1)
     nn_X_val =   torch.autograd.Variable(torch.FloatTensor(X_val.T))
@@ -156,6 +170,7 @@ if __name__ == "__main__":
     validate_loss_history = []
     train_error_history = []
     validate_error_history = []
+    plt.figure(figsize=(14, 8))
     for epoch in range(int(args.max_epoch+1)):
         print("Epoch: %s"%epoch, "TEST AND SAVE FIRST")
         #Test first:
@@ -167,10 +182,12 @@ if __name__ == "__main__":
         train_error_history.append(error_ratio_train[1])
         validate_error_history.append(error_ratio_val[1])
         model.eval()
-        torch.save(model, "../models/NN_weights_%s"%epoch)
+        if epoch>10:
+            if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
+                torch.save(model, "../models/NN_weights_best_%s"%args.further_mode)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
-        plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val)
+        plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
         #Train/Val then:
         train_loss, train_outputs, train_targets = train(args, model, device, train_loader, optimizer, epoch)
         validate_loss, validate_outputs, validate_targets = validate(args, model, device, validate_loader)
@@ -180,7 +197,7 @@ if __name__ == "__main__":
         train_loss_history[0] = validate_loss_history[0]
         print("Train set  Average loss: {:.8f}".format(train_loss))
         print('Validate set Average loss: {:.8f}'.format(validate_loss))
-    if args.VISUALIZATION:
+    if True:
         plt.ioff()
         plt.clf()
         plt.plot(train_loss_history, label='train loss')
@@ -196,7 +213,7 @@ if __name__ == "__main__":
     print("NN:", "NONE")
     print("Error rate:", error_ratio_val)
 
-    torch.save(model, "../model/NN_weights")
+    torch.save(model, "../models/NN_weights_%s"%args.further_mode)
     #embed()
 
 
