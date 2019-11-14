@@ -41,6 +41,7 @@ if __name__ == "__main__":
     parser.add_argument('--VISUALIZATION', '-V', action='store_true', default=False)
     parser.add_argument('--Quick_data', "-Q", action='store_true', default=False)
     args = parser.parse_args()
+    args.further_mode = args.mode
     print("Start...%s"%args)
     args.axis_num = args.axis_num - 1
     
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     mode = ['train', args.mode]
     raw_data, part1_index, part2_index = data_stuff.get_data(args, mode)
 
+    plt.figure(figsize=(14, 8))
     for _idx_, this_part in enumerate([part1_index, part2_index]):
         print("PART start...")
         raw_data_part = raw_data.iloc[this_part]

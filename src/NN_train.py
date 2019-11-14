@@ -170,6 +170,7 @@ if __name__ == "__main__":
     validate_loss_history = []
     train_error_history = []
     validate_error_history = []
+    history_error_ratio_val = []
     plt.figure(figsize=(14, 8))
     for epoch in range(int(args.max_epoch+1)):
         print("Epoch: %s"%epoch, "TEST AND SAVE FIRST")
@@ -188,6 +189,7 @@ if __name__ == "__main__":
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
         plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
+        history_error_ratio_val.append(error_ratio_val)
         #Train/Val then:
         train_loss, train_outputs, train_targets = train(args, model, device, train_loader, optimizer, epoch)
         validate_loss, validate_outputs, validate_targets = validate(args, model, device, validate_loader)
@@ -211,7 +213,7 @@ if __name__ == "__main__":
     names_note = "NN weights"
     print("Names note:", names_note)
     print("NN:", "NONE")
-    print("Error rate:", error_ratio_val)
+    print("Error rate:", np.array(history_error_ratio_val).min(), "at", np.array(history_error_ratio_val).argmin())
 
     torch.save(model, "../models/NN_weights_%s"%args.further_mode)
     #embed()
