@@ -1,21 +1,7 @@
 
 # Friction_compensation
 #APIS---------------------------------------------------
-src下：
-训练线性模型： python classical_train.py （ --Quick_data --mode="linear" --VISUALIZATION --axis_num=4）
-训练NN模型： python NN_train.py （ --Quick_data --max_epoch=100 --num_of_batch=1000 --VISUALIZATION --axis_num=4）
-
-生成：
-线性模型：model下classical_weights
-NN模型： model 下 NN_weights
-
-部署：
-部署线性模型： python classical_deploy.py （ --data_path="../data/plan.csv" --max_force=1 --on_whole_data --VISUALIZATION --axis_num=4）
-部署NN模型： python NN_deploy.py （ --data_path="../data/plan.csv" --max_force=1 --on_whole_data --VISUALIZATION --axis_num=4）
-
-最终补偿：
-线性模型： output下classical_compensation.txt
-NN模型： output下NN_compensation.txt
+#SRC下：
 
 #数学模型训练主程序：
 #输出模型文件说明：
@@ -33,6 +19,17 @@ NN模型： output下NN_compensation.txt
 #python NN_train.py  --mode=acc_uniform -Q --further_mode=uniform
 #python NN_train.py  --mode=low_high -Q --further_mode=low
 #python NN_train.py  --mode=low_high -Q --further_mode=high
+
+#部署：
+#部署线性模型： python classical_deploy.py --mode='low_high'（ --data_path="../data/plan.csv" --max_force=1 -V --axis_num=4）
+#部署NN模型： python NN_deploy.py  --mode='acc_uniform'（ --data_path="../data/plan.csv" --max_force=1 --V --axis_num=4）
+
+#Production产品化，同时上述deploy将使用torch.jit生成C版本的weights
+#产品化C调用方法见另一Readme，在C_production中。需要cudnn和cuda支持。
+
+#最终生成的补偿文件：
+#线性模型： output下classical_compensation.txt
+#NN模型： output下NN_compensation.txt
 
 
 

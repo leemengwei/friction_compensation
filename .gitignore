@@ -123,3 +123,11 @@ classical_weights*
 *.gif
 *.pkl
 *weights*
+
+gifs
+pngs
+build
+libtorch
+libtorch_zips
+cudnn
+*.pt

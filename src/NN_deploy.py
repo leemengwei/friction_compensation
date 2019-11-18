@@ -6,7 +6,6 @@ import numpy as np
 import data_stuff
 from IPython import embed
 
-
 def get_part1_model():
     model_path = "../models/NN_weights_%s"%args.mode.split('_')[0]
     print("Loading part1 model:%s"%model_path)
@@ -18,6 +17,16 @@ def get_part2_model():
     print("Loading part2 model:%s"%model_path)
     model = torch.load(model_path)
     return model
+
+def to_C(model_part1, model_part2, inputs):
+    #Trace with jit:
+    traced_module1 = torch.jit.trace(model_part1, inputs)
+    traced_module2 = torch.jit.trace(model_part2, inputs)
+    model1_path = "../models/NN_weights_%s_C.pt"%args.mode.split('_')[0]
+    model2_path = "../models/NN_weights_%s_C.pt"%args.mode.split('_')[1]
+    traced_module1.save(model1_path)
+    traced_module2.save(model2_path)
+    print("C models saved")
 
 def get_compensate_force(raw_plan, part1_index, part2_index):
     #Take out what we need:
@@ -36,12 +45,15 @@ def get_compensate_force(raw_plan, part1_index, part2_index):
     model_part2 = get_part2_model()
 
     #Forward to get output:
-    input = torch.FloatTensor(normed_data_X.T)
-    output_part1 = model_part1.cpu()(input[part1_index]).detach().numpy()
-    output_part2 = model_part2.cpu()(input[part2_index]).detach().numpy()
+    inputs = torch.FloatTensor(normed_data_X.T)
+    output_part1 = model_part1.cpu()(inputs[part1_index]).detach().numpy()
+    output_part2 = model_part2.cpu()(inputs[part2_index]).detach().numpy()
     reference = normer.denormalize_Y(normed_data_Y)
     compensate_part1 = normer.denormalize_Y(output_part1)
     compensate_part2 = normer.denormalize_Y(output_part2)
+
+    #Save for Production:
+    to_C(model_part1, model_part2, inputs)
 
     #Denormalize Safety restrictions:
     compensate_part1 = np.clip(compensate_part1, -args.max_force, args.max_force)
