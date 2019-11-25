@@ -127,7 +127,10 @@ def get_data(args, mode):
     elif "deploy" in mode:
         datas = pd.read_csv(args.data_path, sep=' ', low_memory=False, index_col=None)
         datas = datas.drop(datas.shape[0]-1).astype(float)
-        datas = datas.drop('line', axis=1)
+        try:
+            datas = datas.drop('line', axis=1)
+        except:
+            pass
         try:
             target = datas['servo_feedback_torque_%s'%args.axis_num]-datas['axc_torque_ffw_gravity_%s'%args.axis_num] 
         except:
