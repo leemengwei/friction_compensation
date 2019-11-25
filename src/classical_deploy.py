@@ -82,6 +82,16 @@ if __name__ == "__main__":
     #-------------------Linear-----------------
     #Get result:
     compensate, reference = get_compensate_force(raw_plan, part1_index, part2_index, model='linear')
+
+    #GPU render:
+    try:
+        import plot_utils
+        from vispy import app
+        plot_utils.GPU_2d_scatter_plot(reference)
+        app.run()
+    except Exception as e:
+        print(e)
+
     #Visualize:
     if args.VISUALIZATION:
         plt.plot(reference, label='reference_feedback', alpha=0.5)

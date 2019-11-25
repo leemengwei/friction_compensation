@@ -131,3 +131,5 @@ libtorch
 libtorch_zips
 cudnn
 *.pt
+*.zip
+libtorch*
