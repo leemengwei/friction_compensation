@@ -1,7 +1,7 @@
 驱动：
 nvidia driver
 cuda
-
+cudnn(详见C_project的Readme来cudnn安装)
 
 应用：
 conda

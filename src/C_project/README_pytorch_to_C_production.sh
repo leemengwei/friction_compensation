@@ -12,9 +12,15 @@
 	-sudo dpkg -i libcudnn7-dev_7.0.3.11-1+cuda9.0_amd64.deb
 	-sudo dpkg -i libcudnn7-doc_7.0.3.11-1+cuda9.0_amd64.deb
 
-3. Exec compile with libtorch
+	-Copy cudnn files to cuda path (perhaps /usr/local/cuda-10/0/)
+        -sudo dpkg -i libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+        -sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda10.2_amd64.deb
+        -sudo dpkg -i libcudnn7-doc_7.6.5.32-1+cuda10.2_amd64.deb
+
+
+3. Exec compile with libtorch_gpu
         mkdir build; cd build
-	-cmake -DCMAKE_PREFIX_PATH=/home/user/lee/libtorch ..
+	-cmake -DCMAKE_PREFIX_PATH=/home/user/lee/libtorch_gpu ..
 	and
 	-make
 
