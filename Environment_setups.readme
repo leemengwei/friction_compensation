@@ -1,0 +1,26 @@
+驱动：
+nvidia driver
+cuda
+
+
+应用：
+conda
+git
+git clone https://github.com/leemengwei/friction_compensation.git（代码）
+git clone https://github.com/leemengwei/project_utilities.git（代码）
+cmake
+
+API库：
+(In conda env python3.7， named as train)
+matplotlib
+numpy
+IPython
+pandas
+pillow
+scipy
+scikit-learn
+scikit-image
+Cython
+seaborn
+torchvision
+torch
