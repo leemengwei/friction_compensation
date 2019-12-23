@@ -20,9 +20,9 @@
 #python NN_train.py  --mode=low_high -Q --further_mode=low
 #python NN_train.py  --mode=low_high -Q --further_mode=high
 
-#部署：
-#部署线性模型： python classical_deploy.py --mode='low_high'（ --data_path="../data/plan.csv" --max_force=1 -V --axis_num=4）
-#部署NN模型： python NN_deploy.py  --mode='acc_uniform'（ --data_path="../data/plan.csv" --max_force=1 --V --axis_num=4）
+#部署(此时同时生成了C的model)：
+#部署线性模型： python classical_deploy.py --mode='low_high'（ --data_path="../data/planning.csv" --max_force=1 -V --axis_num=4）
+#部署NN模型： python NN_deploy.py  --mode='acc_uniform'（ --data_path="../data/planning.csv" --max_force=1 --V --axis_num=4）
 
 #Production产品化，同时上述deploy将使用torch.jit生成C版本的weights
 #产品化C调用方法见另一Readme，在C_production中。需要cudnn和cuda支持。

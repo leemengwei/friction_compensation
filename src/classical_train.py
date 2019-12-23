@@ -81,10 +81,10 @@ if __name__ == "__main__":
         #Nonlinear model loss:
         nonlinear_loss, _J, nonlinear_friction_predicted, _, _ = classical_model.nonlinear_compute_loss(Y_val, X_val, nonlinear_weights)
         #Linear model error:
-        linear_error_ratio = evaluate.evaluate_error_rate(args, linear_friction_predicted, Y_val, normer, raw_data_part_val, showup=True)
+        linear_error_ratio = evaluate.evaluate_error_rate(args, linear_friction_predicted, Y_val, normer, raw_data_part_val, showup=args.VISUALIZATION)
         plot_utils.visual(Y_val, linear_friction_predicted, "Linear", args, title=linear_error_ratio)
         #Nonlinear model error:
-        nonlinear_error_ratio = evaluate.evaluate_error_rate(args, nonlinear_friction_predicted, Y_val, normer, raw_data_part_val)
+        nonlinear_error_ratio = evaluate.evaluate_error_rate(args, nonlinear_friction_predicted, Y_val, normer, raw_data_part_val, showup=args.VISUALIZATION)
         plot_utils.visual(Y_val, nonlinear_friction_predicted, "Nonlinear", args, title=nonlinear_error_ratio)
         plt.clf()
 

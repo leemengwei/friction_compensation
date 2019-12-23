@@ -17,7 +17,7 @@ def evaluate_error_rate(args, outputs, targets, normer, raw_data, showup=False):
    
     error_rate_low = np.abs((_plan[low_value_region] + _compensate[low_value_region] - _meassure[low_value_region])/(_meassure[low_value_region]+epsilon)).mean()*100
     error_rate_high = np.abs((_plan[high_value_region] + _compensate[high_value_region] - _meassure[high_value_region])/(_meassure[high_value_region]+epsilon)).mean()*100
-    if args.VISUALIZATION and showup:
+    if showup:
         bins = np.linspace(targets.min(), targets.max(), 1000)
         plt.hist(_meassure[low_value_region], bins=bins, color='gray', label="Ignored")
         plt.hist(_meassure[high_value_region], bins=bins, color='black', label='Taken')

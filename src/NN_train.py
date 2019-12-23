@@ -13,6 +13,8 @@ import time
 from IPython import embed
 import numpy as np
 import os,sys,time
+import warnings
+warnings.filterwarnings("ignore")
 
 import matplotlib
 #matplotlib.use('TKAgg')
@@ -132,7 +134,7 @@ if __name__ == "__main__":
     nn_X_val =   torch.autograd.Variable(torch.FloatTensor(X_val.T))
     nn_Y_val =   torch.autograd.Variable(torch.FloatTensor(Y_val)).reshape(-1,1)
     #Just for showup high/low region
-    _ = evaluate.evaluate_error_rate(args, Y_val.reshape(-1)*0, Y_val, normer, raw_data_val, showup=True)
+    _ = evaluate.evaluate_error_rate(args, Y_val.reshape(-1)*0, Y_val, normer, raw_data_val, showup=args.VISUALIZATION)
     
     #Form pytorch dataset:
     train_dataset = Data.TensorDataset(nn_X_train, nn_Y_train)
@@ -171,6 +173,7 @@ if __name__ == "__main__":
     train_error_history = []
     validate_error_history = []
     history_error_ratio_val = []
+    #This is for save gif, always on:
     plt.figure(figsize=(14, 8))
     for epoch in range(int(args.max_epoch+1)):
         print("Epoch: %s"%epoch, "TEST AND SAVE FIRST")
@@ -178,8 +181,8 @@ if __name__ == "__main__":
         #Push ALL data together through the network
         predicted_train = np.array(model((nn_X_train.to(device))).detach().cpu()).reshape(-1)
         predicted_val = np.array(model((nn_X_val.to(device))).detach().cpu()).reshape(-1)
-        error_ratio_train = evaluate.evaluate_error_rate(args, predicted_train, nn_Y_train, normer, raw_data_train)
-        error_ratio_val = evaluate.evaluate_error_rate(args, predicted_val, nn_Y_val, normer, raw_data_val)
+        error_ratio_train = evaluate.evaluate_error_rate(args, predicted_train, nn_Y_train, normer, raw_data_train, showup=False)
+        error_ratio_val = evaluate.evaluate_error_rate(args, predicted_val, nn_Y_val, normer, raw_data_val, showup=False)
         train_error_history.append(error_ratio_train[1])
         validate_error_history.append(error_ratio_val[1])
         model.eval()
@@ -188,6 +191,7 @@ if __name__ == "__main__":
                 torch.save(model, "../models/NN_weights_best_%s"%args.further_mode)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
+        #Always save figure:
         plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
         history_error_ratio_val.append(error_ratio_val)
         #Train/Val then:
@@ -199,7 +203,9 @@ if __name__ == "__main__":
         train_loss_history[0] = validate_loss_history[0]
         print("Train set  Average loss: {:.8f}".format(train_loss))
         print('Validate set Average loss: {:.8f}'.format(validate_loss))
+    #if args.VISUALIZATION:
     if True:
+        plt.close()
         plt.ioff()
         plt.clf()
         plt.plot(train_loss_history, label='train loss')
@@ -208,12 +214,14 @@ if __name__ == "__main__":
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.legend()
-        plt.show()
+        plt.draw()
+        plt.pause(2)
+        plt.close()
 
     names_note = "NN weights"
     print("Names note:", names_note)
     print("NN:", "NONE")
-    print("Error rate:", np.array(history_error_ratio_val).min(), "at", np.array(history_error_ratio_val).argmin())
+    print("Error rate:", np.array(history_error_ratio_val).min(), "at index", np.array(history_error_ratio_val).argmin())
 
     torch.save(model, "../models/NN_weights_%s"%args.further_mode)
     #embed()
