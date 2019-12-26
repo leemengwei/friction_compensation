@@ -5,7 +5,11 @@
 
 #include <torch/script.h>
 
+at::Tensor predict(torch::jit::script::Module model, std::vector<torch::jit::IValue> inputs);
+std::vector<torch::jit::IValue> get_data(bool use_cuda);
+torch::jit::script::Module get_model(const char* model_path, bool use_cuda);
 
+/*
 //Function to load model
 torch::jit::script::Module get_model(const char* model_path, bool use_cuda) {
   torch::jit::script::Module module;
@@ -39,7 +43,7 @@ at::Tensor predict(torch::jit::script::Module model, std::vector<torch::jit::IVa
   output = model.forward(inputs).toTensor();
   return output;
 }
-
+*/
 
 int main(int argc, const char* argv[]) {
   //Config:

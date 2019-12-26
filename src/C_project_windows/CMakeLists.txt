@@ -9,6 +9,7 @@ add_executable(${name} ${name}.cpp)
 target_link_libraries(${name} "${TORCH_LIBRARIES}")
 set_property(TARGET ${name} PROPERTY CXX_STANDARD 11)
 
+#include_directories ("./") 
 
 
 

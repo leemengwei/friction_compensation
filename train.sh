@@ -9,8 +9,8 @@ model_deploy_dir='./'
 #Training:
 echo "*******************************Start traning********************************"
 cd src/
-python NN_train.py --max_epoch=10 --hidden_width_scaler=1 --hidden_depth=3 --axis_num=4 --mode=acc_uniform --further_mode=acc 
-python NN_train.py --max_epoch=10 --hidden_width_scaler=1 --hidden_depth=3 --axis_num=4 --mode=acc_uniform -Q --further_mode=uniform 
+python NN_train.py --max_epoch=500 --hidden_width_scaler=1 --hidden_depth=3 --axis_num=4 --mode=acc_uniform --further_mode=acc 
+python NN_train.py --max_epoch=500 --hidden_width_scaler=1 --hidden_depth=3 --axis_num=4 --mode=acc_uniform -Q --further_mode=uniform 
 echo "*****************************Training complete*****************************\n\n\n\n"
 
 
