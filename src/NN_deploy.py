@@ -9,13 +9,13 @@ from IPython import embed
 def get_part1_model():
     model_path = "../models/NN_weights_%s"%args.mode.split('_')[0]
     print("Loading part1 model:%s"%model_path)
-    model = torch.load(model_path)
+    model = torch.load(model_path, map_location=torch.device('cpu') if torch.cuda.is_available() is False else torch.device('cuda'))
     return model
 
 def get_part2_model():
     model_path = "../models/NN_weights_%s"%args.mode.split('_')[1]
     print("Loading part2 model:%s"%model_path)
-    model = torch.load(model_path)
+    model = torch.load(model_path, map_location=torch.device('cpu') if torch.cuda.is_available() is False else torch.device('cuda'))
     return model
 
 def to_C(model_part1, model_part2, inputs):
