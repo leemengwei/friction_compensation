@@ -35,7 +35,7 @@ def get_compensate_force(raw_plan, part1_index, part2_index):
         raw_data_X = np.vstack((raw_data_X, [raw_plan['axc_speed_%s'%i], raw_plan['axc_pos_%s'%i], raw_plan['axc_torque_ffw_gravity_%s'%i], raw_plan['axc_torque_ffw_%s'%i]]))
     raw_data_X = np.vstack((raw_data_X, raw_plan['Temp']))
     raw_data_Y = raw_plan['need_to_compensate'].values
-
+   
     #Normalize data:
     normer = data_stuff.normalizer(raw_data_X)
     normed_data_X, normed_data_Y = normer.normalize_XY(raw_data_X, raw_data_Y)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     mode = ['deploy', args.mode]
     raw_plan, part1_index, part2_index = data_stuff.get_data(args, mode)
 
-    #Get result:
+    #Data_preprocess, and, Get result:
     compensate, reference = get_compensate_force(raw_plan, part1_index, part2_index)
 
     #Visualize:

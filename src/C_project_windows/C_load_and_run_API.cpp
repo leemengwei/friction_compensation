@@ -66,6 +66,14 @@ void preprocess_data(float flat[][num_of_cols]) {
     }
 }
 
+//Function to postprocess output data
+void postprocess_data(std::vector<float> &out) {
+    float Y_mean = -0.0014823869995695225;
+    float Y_std = 0.10306605601654062;
+    for (int i = 0; i < num_of_rows; i++) {
+        out[i] = out[i]*Y_std+Y_mean;
+    }
+}
 
 
 int main(int argc, const char* argv[]) {
@@ -94,6 +102,10 @@ int main(int argc, const char* argv[]) {
 
       //Convert tensor back to float, using vector:
       std::vector<float> out(output.data<float>(), output.data<float>() + output.numel());
+
+      //Postprocess data:
+      postprocess_data(out);
+
       std::cout << out << '\n';
       
  // }
