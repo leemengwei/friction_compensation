@@ -78,7 +78,7 @@ def get_data(args, mode):
 
         chance_to_stay = np.abs(datas.iloc[uniform_index]['servo_feedback_speed_%s'%args.axis_num])/(np.abs(datas.iloc[uniform_index]['servo_feedback_speed_%s'%args.axis_num]).max()*compensator)
         which_to_stay = np.where(np.random.random(len(chance_to_stay)) < chance_to_stay)[0]
-        uniform_index_balanced = np.array(uniform_index)[which_to_stay]
+        uniform_index_balanced = list(np.array(uniform_index)[which_to_stay])
         return uniform_index_balanced
     #Get data in terms of key words [mode]:
     quick_path = "../data/tmp_del/quick.pkl"
@@ -112,6 +112,7 @@ def get_data(args, mode):
             #a = hist(datas['need_to_compensate'],100)
             #chance = np.clip((a[0].sum()/a[0])/((a[0].sum()/a[0]).max()*0.001), 0, 1)
             uniform_index_balanced = _data_balance(datas, uniform_index)
+            uniform_index_balanced.sort()
             print("Uniform motion data are balanced while acc's are not")
             return datas, acc_index, uniform_index_balanced
         elif "low_high" in mode:
@@ -145,6 +146,13 @@ def get_data(args, mode):
             acc_index = list(set(range(len(datas))) - set(uniform_index))
             acc_index.sort()
             print("Be careful, will soon later compensate on whole data... Make sure you've solved the acc force")
+            return datas, acc_index, uniform_index
+        if "acc_uniform_all" in mode:
+            #make sure model for acc is trained
+            assert os.path.exists("../models/NN_weights_all"), "need model named all"
+            acc_index = list(range(len(datas)))
+            uniform_index = list(range(len(datas)))
+            print("Indentical part index returned")
             return datas, acc_index, uniform_index
         elif "low_high" in mode:
             #make sure model for low high is trained

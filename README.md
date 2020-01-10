@@ -91,7 +91,7 @@
 实验：第4轴在动。
 
 又确认了下：
-axc_torque_ffw_gravity_4  ==  最终电机输出的  == pid+前馈
+axc_torque_ffw_gravity_4  ==  最终电机输出的, 记住是电流I就好了  == pid+前馈
 
 ×××规划：
 第二列ms是时间，        Note: 来回往复，貌似没有间断, 需要自己取出。

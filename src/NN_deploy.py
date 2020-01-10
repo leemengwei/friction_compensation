@@ -5,30 +5,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 import data_stuff
 from IPython import embed
+import evaluate
 
-def get_part1_model():
-    model_path = "../models/NN_weights_%s"%args.mode.split('_')[0]
-    print("Loading part1 model:%s"%model_path)
+def get_part_model(name):
+    model_path = "../models/NN_weights_%s"%name
+    print("Loading part model:%s"%model_path)
     model = torch.load(model_path, map_location=torch.device('cpu') if torch.cuda.is_available() is False else torch.device('cuda'))
     return model
 
-def get_part2_model():
-    model_path = "../models/NN_weights_%s"%args.mode.split('_')[1]
-    print("Loading part2 model:%s"%model_path)
-    model = torch.load(model_path, map_location=torch.device('cpu') if torch.cuda.is_available() is False else torch.device('cuda'))
-    return model
-
-def to_C(model_part1, model_part2, inputs):
+def to_C(args, model_part1, model_part2, inputs):
+    if 'all' not in args.mode:
+        name1 = args.mode.split('_')[0]     #'acc'
+        name2 = args.mode.split('_')[1]     #'uniform'
+    else:   # 'acc_uniform_all', 'low_high_all'
+        name1 = args.mode.split('_')[-1]    #'all'
+        name2 = args.mode.split('_')[-1]    #'all' as well
     #Trace with jit:
     traced_module1 = torch.jit.trace(model_part1, inputs)
     traced_module2 = torch.jit.trace(model_part2, inputs)
-    model1_path = "../models/NN_weights_%s_C.pt"%args.mode.split('_')[0]
-    model2_path = "../models/NN_weights_%s_C.pt"%args.mode.split('_')[1]
+    model1_path = "../models/NN_weights_%s_C.pt"%name1
+    model2_path = "../models/NN_weights_%s_C.pt"%name2
     traced_module1.save(model1_path)
     traced_module2.save(model2_path)
     print("C models saved")
 
-def get_compensate_force(raw_plan, part1_index, part2_index):
+def get_compensate_force(args, raw_plan, part1_index, part2_index):
     #Take out what we need:
     raw_data_X = np.empty(shape=(0, len(raw_plan)))
     for i in [0,1,2,3,4,5]:
@@ -41,31 +42,32 @@ def get_compensate_force(raw_plan, part1_index, part2_index):
     normed_data_X, normed_data_Y = normer.normalize_XY(raw_data_X, raw_data_Y)
 
     #Get model:
-    model_part1 = get_part1_model()
-    model_part2 = get_part2_model()
+    if 'all' not in args.mode:
+        model_part1 = get_part_model(args.mode.split('_')[0])     #'acc'
+        model_part2 = get_part_model(args.mode.split('_')[1])     #'uniform'
+    else:   # 'acc_uniform_all', 'low_high_all'
+        model_part1 = get_part_model(args.mode.split('_')[-1])    #'all'
+        model_part2 = get_part_model(args.mode.split('_')[-1])    #'all' as well
 
     #Forward to get output:
     inputs = torch.FloatTensor(normed_data_X.T)
     output_part1 = model_part1.cpu()(inputs[part1_index]).detach().numpy()
     output_part2 = model_part2.cpu()(inputs[part2_index]).detach().numpy()
-    reference = normer.denormalize_Y(normed_data_Y)
-    compensate_part1 = normer.denormalize_Y(output_part1)
-    compensate_part2 = normer.denormalize_Y(output_part2)
-
-    #Save for Production:
-    to_C(model_part1, model_part2, inputs)
-
-    #Denormalize Safety restrictions:
-    compensate_part1 = np.clip(compensate_part1, -args.max_force, args.max_force)
-    compensate_part2 = np.clip(compensate_part2, -args.max_force, args.max_force)
-
     #Compose together:
     #TODO: solve the switch point.
-    compensate_full_series = np.zeros(len(raw_plan))
-    compensate_full_series[part1_index] = compensate_part1.reshape(-1)
-    compensate_full_series[part2_index] = compensate_part2.reshape(-1)
-    reference_full_series = raw_plan['need_to_compensate'].values
-    return compensate_full_series, reference_full_series
+    output_full_series = np.zeros(len(raw_plan))
+    output_full_series[part1_index] = output_part1.reshape(-1)
+    output_full_series[part2_index] = output_part2.reshape(-1)
+
+    #Denormalize and Safety restrictions:
+    reference_full_series = raw_plan['need_to_compensate'].values    #show be same with reference = normer.denormalize_Y(normed_data_Y)
+    compensate_full_series = normer.denormalize_Y(output_full_series)
+    compensate_full_series = np.clip(compensate_full_series, -args.max_force, args.max_force)
+
+    #Save for Production:
+    to_C(args, model_part1, model_part2, inputs)
+    _, error_ratio = evaluate.evaluate_error_rate(args, output_full_series, normed_data_Y, normer, raw_plan, showup=False)
+    return compensate_full_series, reference_full_series, error_ratio
 
 if __name__ == "__main__":
     print("Deploy time NN model...")
@@ -74,8 +76,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--max_force', type=int, default = 1)
     parser.add_argument('--axis_num', type=int, default = 4)
-    parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high"], required=True)
-    parser.add_argument('--data_path', type=str, default = "../data/planning.csv")
+    parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high", "acc_uniform_all", "low_high_all"], required=True)
+    parser.add_argument('--data_path', type=str, default = "../data/planning_simulator.csv")
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     args = parser.parse_args()
     args.axis_num = args.axis_num - 1    #joint index
@@ -85,7 +87,7 @@ if __name__ == "__main__":
     raw_plan, part1_index, part2_index = data_stuff.get_data(args, mode)
 
     #Data_preprocess, and, Get result:
-    compensate, reference = get_compensate_force(raw_plan, part1_index, part2_index)
+    compensate, reference, error_ratio = get_compensate_force(args, raw_plan, part1_index, part2_index)
 
     #Visualize:
     if args.VISUALIZATION:
@@ -93,8 +95,11 @@ if __name__ == "__main__":
         plt.scatter(part1_index, compensate[part1_index], label='part1_predicted_feedback', color='green', s=1)
         plt.scatter(part2_index, compensate[part2_index], label='part2_predicted_feedback', color='red', s=1)
         plt.legend()
+        plt.title("Error: %s%%"%error_ratio)
         plt.show()
 
     np.savetxt("../output/NN_compensation.txt", compensate)
     print("Done")
+
+
 

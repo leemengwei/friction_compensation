@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--learning_rate', '-LR', type=float, default=1e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
-    parser.add_argument('--max_epoch', '-E', type=int, default=100)
+    parser.add_argument('--max_epoch', '-E', type=int, default=1000)
 
     parser.add_argument('--hidden_width_scaler', type=int, default = 1)
     parser.add_argument('--hidden_depth', type=int, default = 3)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--NO_CUDA', action='store_true', default=False)
     parser.add_argument('--Quick_data', "-Q", action='store_true', default=False)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high"], required=True)
-    parser.add_argument('--further_mode', type=str, choices=["acc", "uniform", "low", "high"], required=True)
+    parser.add_argument('--further_mode', type=str, choices=["acc", "uniform", "low", "high", "all"], required=True)
     args = parser.parse_args()
     args.axis_num = args.axis_num - 1
     
@@ -103,7 +103,12 @@ if __name__ == "__main__":
     #Get data:
     mode = ['train', args.mode]
     raw_data, part1_index, part2_index = data_stuff.get_data(args, mode)
-    this_part = part1_index if args.further_mode=="acc" or args.further_mode=="low" else part2_index
+    if args.further_mode=="acc" or args.further_mode=="low":
+        this_part = part1_index
+    elif args.further_mode=="uniform" or args.further_mode=="high":
+        this_part = part2_index
+    else:    # args.further_mode=="all"
+        this_part = part1_index+part2_index
 
     #Take variables we concerned:
     print("PART start...%s"%args.further_mode)
@@ -117,6 +122,8 @@ if __name__ == "__main__":
     data_X = raw_data_part[input_columns_names].values.T
     data_Y = raw_data_part[output_columns_names].values
     print("Shape of all input: %s, shape of all output: %s"%(data_X.shape, data_Y.shape))
+    #import input_analyzer
+    #input_analyzer.show_me_data(raw_data_part[input_columns_names])
 
     #Normalize data:
     normer = data_stuff.normalizer(data_X)
