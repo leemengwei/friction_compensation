@@ -8,7 +8,7 @@ from IPython import embed
 import evaluate
 
 def get_part_model(name):
-    model_path = "../models/NN_weights_%s"%name
+    model_path = "../models/NN_weights_best_%s"%name
     print("Loading part model:%s"%model_path)
     model = torch.load(model_path, map_location=torch.device('cpu') if torch.cuda.is_available() is False else torch.device('cuda'))
     return model
