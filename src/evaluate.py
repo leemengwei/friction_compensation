@@ -15,6 +15,7 @@ def evaluate_error_rate(args, outputs, targets, normer, raw_data, showup=False):
     low_value_region = np.where(np.abs(_meassure)<value_threshold)
     high_value_region = np.where(np.abs(_meassure)>=value_threshold)
    
+    error_rate_original = np.abs((_plan[high_value_region] - _meassure[high_value_region])/(_meassure[high_value_region]+epsilon)).mean()*100
     error_rate_low = np.abs((_plan[low_value_region] + _compensate[low_value_region] - _meassure[low_value_region])/(_meassure[low_value_region]+epsilon)).mean()*100
     error_rate_high = np.abs((_plan[high_value_region] + _compensate[high_value_region] - _meassure[high_value_region])/(_meassure[high_value_region]+epsilon)).mean()*100
     if showup:
@@ -27,6 +28,6 @@ def evaluate_error_rate(args, outputs, targets, normer, raw_data, showup=False):
     if error_rate_high > 1000:
         print("Relative Error Should not be this large"*10)
         #embed()
-    return (error_rate_low, error_rate_high)
+    return (error_rate_original, error_rate_low, error_rate_high)
 
 

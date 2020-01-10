@@ -188,7 +188,7 @@ if __name__ == "__main__":
         #Push ALL data together through the network
         predicted_train = np.array(model((nn_X_train.to(device))).detach().cpu()).reshape(-1)
         predicted_val = np.array(model((nn_X_val.to(device))).detach().cpu()).reshape(-1)
-        error_ratio_train = evaluate.evaluate_error_rate(args, predicted_train, nn_Y_train, normer, raw_data_train, showup=False)
+        _, error_ratio_train = evaluate.evaluate_error_rate(args, predicted_train, nn_Y_train, normer, raw_data_train, showup=False)
         error_ratio_val = evaluate.evaluate_error_rate(args, predicted_val, nn_Y_val, normer, raw_data_val, showup=False)
         train_error_history.append(error_ratio_train[1])
         validate_error_history.append(error_ratio_val[1])

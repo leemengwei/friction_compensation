@@ -66,8 +66,8 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
 
     #Save for Production:
     to_C(args, model_part1, model_part2, inputs)
-    _, error_ratio = evaluate.evaluate_error_rate(args, output_full_series, normed_data_Y, normer, raw_plan, showup=False)
-    return compensate_full_series, reference_full_series, error_ratio
+    error_original, _, error_treated = evaluate.evaluate_error_rate(args, output_full_series, normed_data_Y, normer, raw_plan, showup=False)
+    return compensate_full_series, reference_full_series, error_original, error_treated
 
 if __name__ == "__main__":
     print("Deploy time NN model...")
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_force', type=int, default = 1)
     parser.add_argument('--axis_num', type=int, default = 4)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high", "acc_uniform_all", "low_high_all"], required=True)
-    parser.add_argument('--data_path', type=str, default = "../data/planning_simulator.csv")
+    parser.add_argument('--data_path', type=str, default = "../data/planning.csv")
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     args = parser.parse_args()
     args.axis_num = args.axis_num - 1    #joint index
@@ -87,15 +87,16 @@ if __name__ == "__main__":
     raw_plan, part1_index, part2_index = data_stuff.get_data(args, mode)
 
     #Data_preprocess, and, Get result:
-    compensate, reference, error_ratio = get_compensate_force(args, raw_plan, part1_index, part2_index)
+    compensate, reference, error_original, error_treated = get_compensate_force(args, raw_plan, part1_index, part2_index)
 
     #Visualize:
     if args.VISUALIZATION:
         plt.plot(reference, label='reference_feedback', alpha=0.5)
+        plt.scatter(range(len(raw_plan)), raw_plan['axc_torque_ffw_gravity_%s'%args.axis_num], label='original', color='gray', s=1, alpha=0.5)
         plt.scatter(part1_index, compensate[part1_index], label='part1_predicted_feedback', color='green', s=1)
         plt.scatter(part2_index, compensate[part2_index], label='part2_predicted_feedback', color='red', s=1)
         plt.legend()
-        plt.title("Error: %s%%"%error_ratio)
+        plt.title("Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated, error_original))
         plt.show()
 
     np.savetxt("../output/NN_compensation.txt", compensate)
