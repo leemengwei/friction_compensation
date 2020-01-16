@@ -89,7 +89,7 @@ def get_data(args, mode):
             datas = pickle.load(open(quick_path, 'rb'))
         else:
             print("No quick data: %s"%quick_path)
-            files = glob.glob("../data/*.prb-log")
+            files = glob.glob("../data/%s/*.prb-log"%args.pool_name)
             datas = pd.DataFrame()
             for _file_ in tqdm(files[:]):
                 print("Getting data %s"%_file_)

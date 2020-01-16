@@ -53,6 +53,8 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
     inputs = torch.FloatTensor(normed_data_X.T)
     output_part1 = model_part1.cpu()(inputs[part1_index]).detach().numpy()
     output_part2 = model_part2.cpu()(inputs[part2_index]).detach().numpy()
+    #import my_analyzer
+    #my_analyzer.performance_shape(raw_plan, inputs, model_part1)
     #Compose together:
     #TODO: solve the switch point.
     output_full_series = np.zeros(len(raw_plan))
@@ -101,6 +103,4 @@ if __name__ == "__main__":
 
     np.savetxt("../output/NN_compensation.txt", compensate)
     print("Done")
-
-
 

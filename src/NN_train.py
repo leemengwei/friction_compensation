@@ -89,6 +89,7 @@ if __name__ == "__main__":
     parser.add_argument('--Quick_data', "-Q", action='store_true', default=False)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high"], required=True)
     parser.add_argument('--further_mode', type=str, choices=["acc", "uniform", "low", "high", "all"], required=True)
+    parser.add_argument('--pool_name', type=str, required=True)
     args = parser.parse_args()
     args.axis_num = args.axis_num - 1
     
@@ -122,8 +123,8 @@ if __name__ == "__main__":
     data_X = raw_data_part[input_columns_names].values.T
     data_Y = raw_data_part[output_columns_names].values
     print("Shape of all input: %s, shape of all output: %s"%(data_X.shape, data_Y.shape))
-    #import input_analyzer
-    #input_analyzer.show_me_data(raw_data_part[input_columns_names])
+    #import my_analyzer
+    #my_analyzer.show_me_input_data(raw_data_part[input_columns_names])
 
     #Normalize data:
     normer = data_stuff.normalizer(data_X)
