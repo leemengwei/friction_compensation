@@ -27,7 +27,7 @@ def evaluate_error_rate(args, outputs, targets, normer, raw_data, showup=False):
         plt.show()
     if error_rate_high > 1000:
         print("Relative Error Should not be this large"*10)
-        #embed()
+        embed()
     return (error_rate_original, error_rate_low, error_rate_high)
 
 

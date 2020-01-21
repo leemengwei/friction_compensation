@@ -191,3 +191,20 @@ class normalizer(object):
         return Y*self._Y_std_never_touch+self._Y_mean_never_touch
 
 
+if __name__ == "__main__":
+    print("Script is called to compose test csv(s)")
+    test_file_path = '../data/G/linux_data_share/'
+    axis_num = 4-1
+    files = glob.glob(test_file_path+"/*.prb-log")
+    datas = pd.DataFrame()
+    for _file_ in tqdm(files[:]):
+        data = pd.read_csv(_file_, sep=' ', low_memory=False, index_col=None)
+        data = data.drop(data.shape[0]-1).astype(float)
+        data = data.drop('line', axis=1)
+        datas = pd.concat((datas, data), ignore_index=True)
+    datas['need_to_compensate'] = datas['servo_feedback_torque_%s'%axis_num]-datas['axc_torque_ffw_gravity_%s'%axis_num]
+    datas['Temp'] = 0
+    datas.to_csv(test_file_path+"./planning_all.csv", index=None, sep=' ')
+    print("Done, you can run NN-deploy to check now.")
+
+
