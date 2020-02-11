@@ -180,12 +180,15 @@ class normalizer(object):
         self._X_std_never_touch_25 = np.tile(np.array([1.49259451e-02, 3.22330006e-03, 1.96332955e-02, 1.96332663e-02, 8.86414915e-03, 1.26311744e+02, 1.40872237e+00, 1.98642367e-02, 2.82137393e-02, 1.65190416e+02, 3.03534892e-01, 1.14498188e-02, 2.04909340e+02, 1.20522046e+02, 5.97290116e-02, 4.98756114e-02, 1.37543738e-01, 1.08568109e+02, 1.89032465e-02, 6.36430634e-04, 1.0, 1.48271675e-04, 1.0, 1.0, 1.0]), (X.shape[1],1)).T
         self._Y_mean_never_touch = -0.0014823869995695225
         self._Y_std_never_touch = 0.10306605601654062
+    def normalize_X(self, X):
+        #print("Normalized dim %s for NN model"%len(X))
+        return (X-self._X_mean_never_touch_25)/self._X_std_never_touch_25
     def normalize_XY(self, X, Y):
         if len(X)==5:
-            print("Normalized dim %s for classical model"%len(X))
+            #print("Normalized dim %s for classical model"%len(X))
             return (X-self._X_mean_never_touch_5)/self._X_std_never_touch_5, (Y-self._Y_mean_never_touch)/self._Y_std_never_touch
         else:
-            print("Normalized dim %s for NN model"%len(X))
+            #print("Normalized dim %s for NN model"%len(X))
             return (X-self._X_mean_never_touch_25)/self._X_std_never_touch_25, (Y-self._Y_mean_never_touch)/self._Y_std_never_touch
     def denormalize_Y(self, Y):
         return Y*self._Y_std_never_touch+self._Y_mean_never_touch

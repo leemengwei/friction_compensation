@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--learning_rate', '-LR', type=float, default=1e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
-    parser.add_argument('--max_epoch', '-E', type=int, default=1000)
+    parser.add_argument('--max_epoch', '-E', type=int, default=300)
 
     parser.add_argument('--hidden_width_scaler', type=int, default = 1)
     parser.add_argument('--hidden_depth', type=int, default = 3)
@@ -182,7 +182,8 @@ if __name__ == "__main__":
     validate_error_history = []
     history_error_ratio_val = []
     #This is for save gif, always on:
-    plt.figure(figsize=(14, 8))
+    if VISUALIZATION:
+        plt.figure(figsize=(14, 8))
     for epoch in range(int(args.max_epoch+1)):
         print("Epoch: %s"%epoch, "TEST AND SAVE FIRST")
         #Test first:

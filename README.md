@@ -19,7 +19,7 @@
 #python NN_train.py  --mode=acc_uniform -Q --further_mode=uniform
 #python NN_train.py  --mode=low_high -Q --further_mode=low
 #python NN_train.py  --mode=low_high -Q --further_mode=high
-#python NN_train.py  --mode=acc_uniform  --further_mode=all
+#python NN_train.py  --mode=acc_uniform  --further_mode=all --pool_name=2020
 
 #部署(此时同时生成了C的model)：
 #部署线性模型： python classical_deploy.py --mode='low_high'（ --data_path="../data/planning.csv" --max_force=1 -V --axis_num=4）
