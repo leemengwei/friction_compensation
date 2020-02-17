@@ -38,6 +38,7 @@ import torch.utils.data as Data
 import torch.optim as optim
 import torch.nn.functional as F
 torch.manual_seed(44)
+import pandas as pd
 
 def train(args, model, device, train_loader, optimizer, epoch):
     model = model.to(device)
@@ -182,7 +183,7 @@ if __name__ == "__main__":
     validate_error_history = []
     history_error_ratio_val = []
     #This is for save gif, always on:
-    if VISUALIZATION:
+    if args.VISUALIZATION:
         plt.figure(figsize=(14, 8))
     for epoch in range(int(args.max_epoch+1)):
         print("Epoch: %s"%epoch, "TEST AND SAVE FIRST")
@@ -195,9 +196,10 @@ if __name__ == "__main__":
         train_error_history.append(error_ratio_train)
         validate_error_history.append(error_ratio_val)
         model.eval()
-        if epoch>10:
+        if epoch>1:
             if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
                 torch.save(model, "../models/NN_weights_best_%s"%args.further_mode)
+                pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
         #Always save figure:
