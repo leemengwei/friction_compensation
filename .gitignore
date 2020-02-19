@@ -5,7 +5,7 @@ __pycache__/
 *.swp
 # C extensions
 *.so
-
+*.out
 # Distribution / packaging
 .Python
 build/
@@ -135,3 +135,5 @@ libtorch*
 *.a
 *.o
 .vs/
+
+*compensation.txt

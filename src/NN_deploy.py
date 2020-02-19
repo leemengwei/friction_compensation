@@ -6,11 +6,19 @@ import numpy as np
 import data_stuff
 from IPython import embed
 import evaluate
+import NN_model
+import warnings
+import time
+import copy
+warnings.filterwarnings("ignore")
 
 def get_part_model(name):
     model_path = "../models/NN_weights_best_%s"%name
     print("Loading part model:%s"%model_path)
-    model = torch.load(model_path, map_location=torch.device('cpu') if torch.cuda.is_available() is False else torch.device('cuda'))
+    #model = torch.load(model_path, map_location=torch.device(device_type))
+    model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
+    model.load_state_dict(torch.load(model_path).state_dict())
+    model = model.to(device_type)
     return model
 
 def to_C(args, model_part1, model_part2, inputs):
@@ -50,9 +58,29 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
         model_part2 = get_part_model(args.mode.split('_')[-1])    #'all' as well
 
     #Forward to get output:
-    inputs = torch.FloatTensor(normed_data_X.T)
-    output_part1 = model_part1.cpu()(inputs[part1_index]).detach().numpy()
-    output_part2 = model_part2.cpu()(inputs[part2_index]).detach().numpy()
+    inputs = torch.FloatTensor(normed_data_X.T).to(device_type)
+    output_part1 = model_part1(inputs[part1_index]).detach().cpu().numpy()
+    output_part2 = model_part2(inputs[part2_index]).detach().cpu().numpy()
+    #Speed test:
+    if args.speed_test:
+        inputs[:,:]=1
+        #On default device:
+        for i in range(10): 
+            model_part1(inputs[:args.buffer_length])
+        tic = time.time() 
+        for i in range(1000): 
+            model_part1(inputs[:args.buffer_length])
+        print((time.time()-tic)/1000*1000, "ms on %s"%device_type)  
+        #On cpu deivce:
+        cpu_model = copy.deepcopy(model_part1).cpu()
+        cpu_inputs = inputs.cpu()
+        for i in range(10): 
+            cpu_model(cpu_inputs[:args.buffer_length])
+        tic = time.time() 
+        for i in range(1000): 
+            cpu_model(cpu_inputs[:args.buffer_length])
+        print((time.time()-tic)/1000*1000, "ms on cpu")  
+
     #import my_analyzer
     #my_analyzer.performance_shape(raw_plan, inputs, model_part1)
     #Compose together:
@@ -67,7 +95,7 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
     compensate_full_series = np.clip(compensate_full_series, -args.max_force, args.max_force)
 
     #Save for Production:
-    to_C(args, model_part1, model_part2, inputs)
+    to_C(args, model_part1.cpu(), model_part2.cpu(), inputs.cpu())
     error_original, _, error_treated = evaluate.evaluate_error_rate(args, output_full_series, normed_data_Y, normer, raw_plan, showup=False)
     return compensate_full_series, reference_full_series, error_original, error_treated
 
@@ -78,11 +106,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--max_force', type=int, default = 1)
     parser.add_argument('--axis_num', type=int, default = 4)
+    parser.add_argument('--buffer_length', type=int, default = 6)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high", "acc_uniform_all", "low_high_all"], required=True)
     parser.add_argument('--data_path', type=str, default = "../data/planning.csv")
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
+    parser.add_argument('--speed_test', "-SPD", action='store_true', default=False)
+    parser.add_argument('--no_cuda', action='store_true', default=False)
     args = parser.parse_args()
     args.axis_num = args.axis_num - 1    #joint index
+    cuda_is_available = torch.cuda.is_available()
+    if args.no_cuda:
+        cuda_is_available = False
+    if not cuda_is_available:
+        device_type = 'cpu'
+        print("Using cpu")
+    else:
+        device_type = 'cuda'
+        print("Using gpu")
 
     #Get plans:
     mode = ['deploy', args.mode]

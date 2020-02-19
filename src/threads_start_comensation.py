@@ -7,19 +7,21 @@ import NN_deploy
 import torch
 import data_stuff
 import warnings
+import NN_model
 warnings.filterwarnings("ignore")
-
 class Worker():
     def __init__(self, model_name, time_num=None):
-        self.model = torch.load(model_name, map_location=torch.device("cpu"))
+        self.model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
+        self.model.load_state_dict(torch.load(model_name).state_dict())
+        #self.model = torch.load(model_name, map_location=torch.device(device_type))
         self.normer = data_stuff.normalizer(np.zeros((input_dim, buffer_length)))
-        print("Model Intialized.")
+        print("Model Intialized", model_name)
     def do(self, planned_data, SOMETHING=None):
         #Normalization:
         normed_data_X = self.normer.normalize_X(planned_data)
         #Forward to get output:
-        inputs = torch.FloatTensor(normed_data_X.T)
-        outputs = self.model.cpu()(inputs).detach().numpy()
+        inputs = torch.FloatTensor(normed_data_X.T).to(device_type)
+        outputs = self.model(inputs).detach().cpu().numpy()
         outputs = outputs.reshape(-1)
         #Denormalization:
         result = self.normer.denormalize_Y(outputs)
@@ -81,24 +83,25 @@ def algorithm_compensation(workers_list, \
     _thread5.set_values(planned_data5)
     _thread6.set_values(planned_data6)
     #Wait for each other.   TODO: To rethink if it's necessary
-    #_thread1.start()
-    #_thread2.start()
-    #_thread3.start()
-    #_thread4.start()
-    #_thread5.start()
-    #_thread6.start()
-    #_thread1.join()
-    #_thread2.join()
-    #_thread3.join()
-    #_thread4.join()
-    #_thread5.join()
-    #_thread6.join()
-    _thread1.run()
-    _thread2.run()
-    _thread3.run()
-    _thread4.run()
-    _thread5.run()
-    _thread6.run()
+    #MAY stuck with CUDA 10! 
+    _thread1.start()
+    _thread2.start()
+    _thread3.start()
+    _thread4.start()
+    _thread5.start()
+    _thread6.start()
+    _thread1.join()
+    _thread2.join()
+    _thread3.join()
+    _thread4.join()
+    _thread5.join()
+    _thread6.join()
+    #_thread1.run()
+    #_thread2.run()
+    #_thread3.run()
+    #_thread4.run()
+    #_thread5.run()
+    #_thread6.run()
     #Gather results:
     #results = np.array([_thread1.result, _thread2.result, _thread3.result, _thread4.result, _thread5.result, _thread6.result])
     results = None
@@ -106,19 +109,21 @@ def algorithm_compensation(workers_list, \
 
 if __name__ == "__main__":
     #Config:
+    device_type = 'cuda'
+    #device_type = 'cpu'
     buffer_length = 6
     input_dim = 25
     model_names = [ "None",
         "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_all_1",
-        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_all_2",
-        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_all_3",
-        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_all_4",
-        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_all_5",
+        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_acc",
+        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_uniform",
+        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_acc",
+        "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_uniform",
         "/mfs/home/limengwei/friction_compensation/models_save/NN_weights_best_all_6",
     ]
     interval_t = 8  #ms
     total_t_consumption = 0
-    num_of_test = 1000
+    num_of_test = 100
     t_history = []
     #Get model:
     print("Getting model...")
@@ -144,5 +149,4 @@ if __name__ == "__main__":
     #Report:
     print("Average time used: {0} ms".format(average_t))
     print("Done")
-
     #embed()
