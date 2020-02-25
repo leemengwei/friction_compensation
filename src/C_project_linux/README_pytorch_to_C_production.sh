@@ -21,11 +21,13 @@
 
 3. Exec compile with libtorch_gpu
         mkdir build;
-	      rm build/* -r;cd build/;cmake ..;cd ../;
-	      cd build/;make;cd ../;
+        rm build/* -r;cd build;cmake ..;cd ..;
+	cd build/;make;cd ..;
 
 4. Ok to run
-        cd build/;./C_load_and_run_API;cd ../;
+	cd build/;./C_load_and_run_API;cd ..; #run single thread and multi thread
+	./run_all_cpu.sh;   #multi process cpu (checkout first part given by single thread by C++)
+	./run_all_gpu.sh;   #multi process gpu (checkout first part given by single thread by C++)
 
 #MAKE Instructions:
 #https://www.cnblogs.com/lidabo/p/6381772.html

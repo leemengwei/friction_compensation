@@ -10,13 +10,15 @@ import NN_model
 import warnings
 import time
 import copy
+import plot_utils
 warnings.filterwarnings("ignore")
 
-def get_part_model(name):
+def get_part_model(X, name):
     model_path = "../models/NN_weights_best_%s"%name
     print("Loading part model:%s"%model_path)
     #model = torch.load(model_path, map_location=torch.device(device_type))
-    model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
+    #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
+    model = NN_model.NeuralNetSimple(input_size=X.shape[0], hidden_size=X.shape[0]*5, hidden_depth=3, output_size=1, device=torch.device(device_type))
     model.load_state_dict(torch.load(model_path).state_dict())
     model = model.to(device_type)
     return model
@@ -39,10 +41,19 @@ def to_C(args, model_part1, model_part2, inputs):
 
 def get_compensate_force(args, raw_plan, part1_index, part2_index):
     #Take out what we need:
+    #Make inputs:
     raw_data_X = np.empty(shape=(0, len(raw_plan)))
-    for i in [0,1,2,3,4,5]:
-        raw_data_X = np.vstack((raw_data_X, [raw_plan['axc_speed_%s'%i], raw_plan['axc_pos_%s'%i], raw_plan['axc_torque_ffw_gravity_%s'%i], raw_plan['axc_torque_ffw_%s'%i]]))
-    raw_data_X = np.vstack((raw_data_X, raw_plan['Temp']))
+    input_columns_names = []
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_pos_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_speed_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_torque_ffw_gravity_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_torque_ffw_%s'%i]
+    input_columns_names += ['Temp']
+    raw_data_X = raw_plan[input_columns_names].values.T
     raw_data_Y = raw_plan['need_to_compensate'].values
    
     #Normalize data:
@@ -51,11 +62,11 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
 
     #Get model:
     if 'all' not in args.mode:
-        model_part1 = get_part_model(args.mode.split('_')[0])     #'acc'
-        model_part2 = get_part_model(args.mode.split('_')[1])     #'uniform'
+        model_part1 = get_part_model(normed_data_X, args.mode.split('_')[0])     #'acc'
+        model_part2 = get_part_model(normed_data_X, args.mode.split('_')[1])     #'uniform'
     else:   # 'acc_uniform_all', 'low_high_all'
-        model_part1 = get_part_model(args.mode.split('_')[-1])    #'all'
-        model_part2 = get_part_model(args.mode.split('_')[-1])    #'all' as well
+        model_part1 = get_part_model(normed_data_X, args.mode.split('_')[-1])    #'all'
+        model_part2 = get_part_model(normed_data_X, args.mode.split('_')[-1])    #'all' as well
 
     #Forward to get output:
     inputs = torch.FloatTensor(normed_data_X.T).to(device_type)
@@ -97,7 +108,8 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
     #Save for Production:
     to_C(args, model_part1.cpu(), model_part2.cpu(), inputs.cpu())
     error_original, _, error_treated = evaluate.evaluate_error_rate(args, output_full_series, normed_data_Y, normer, raw_plan, showup=False)
-    return compensate_full_series, reference_full_series, error_original, error_treated
+    model_returned = model_part1
+    return compensate_full_series, reference_full_series, error_original, error_treated, model_returned, inputs
 
 if __name__ == "__main__":
     print("Deploy time NN model...")
@@ -109,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('--buffer_length', type=int, default = 6)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high", "acc_uniform_all", "low_high_all"], required=True)
     parser.add_argument('--data_path', type=str, default = "../data/planning.csv")
+    parser.add_argument('--Quick_data', '-Q', action='store_true', default=False)
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     parser.add_argument('--speed_test', "-SPD", action='store_true', default=False)
     parser.add_argument('--no_cuda', action='store_true', default=False)
@@ -129,7 +142,7 @@ if __name__ == "__main__":
     raw_plan, part1_index, part2_index = data_stuff.get_data(args, mode)
 
     #Data_preprocess, and, Get result:
-    compensate, reference, error_original, error_treated = get_compensate_force(args, raw_plan, part1_index, part2_index)
+    compensate, reference, error_original, error_treated, model_returned, inputs = get_compensate_force(args, raw_plan, part1_index, part2_index)
 
     #Visualize:
     if args.VISUALIZATION:
@@ -139,8 +152,17 @@ if __name__ == "__main__":
         plt.scatter(part2_index, compensate[part2_index], label='part2_predicted_feedback', color='red', s=1)
         plt.legend()
         plt.title("Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated, error_original))
+        print("One of the reason it may shows higher error rate than expected is because some uniform speed range be ommited during train/val evaluation")
         plt.show()
 
     np.savetxt("../output/NN_compensation.txt", compensate)
     print("Done")
+
+    response_surface = True
+    if response_surface and args.VISUALIZATION:
+        plot_utils.response_surface(model_returned, inputs)
+
+
+
+
 

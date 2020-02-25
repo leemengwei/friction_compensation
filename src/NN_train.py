@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--learning_rate', '-LR', type=float, default=1e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
-    parser.add_argument('--max_epoch', '-E', type=int, default=300)
+    parser.add_argument('--max_epoch', '-E', type=int, default=12)
 
     parser.add_argument('--hidden_width_scaler', type=int, default = 1)
     parser.add_argument('--hidden_depth', type=int, default = 3)
@@ -113,12 +113,19 @@ if __name__ == "__main__":
         this_part = part1_index+part2_index
 
     #Take variables we concerned:
+    #Make inputs:
     print("PART start...%s"%args.further_mode)
     raw_data_part = raw_data.iloc[this_part]
     data_X = np.empty(shape=(0, len(raw_data_part)))
     input_columns_names = []
-    for i in [0,1,2,3,4,5]:
-        input_columns_names += ['axc_speed_%s'%i, 'axc_pos_%s'%i, 'axc_torque_ffw_gravity_%s'%i, 'axc_torque_ffw_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_pos_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_speed_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_torque_ffw_gravity_%s'%i]
+    for i in [args.axis_num]:
+        input_columns_names += ['axc_torque_ffw_%s'%i]
     input_columns_names += ['Temp']
     output_columns_names = ['need_to_compensate']
     data_X = raw_data_part[input_columns_names].values.T
@@ -169,9 +176,10 @@ if __name__ == "__main__":
     hidden_size = nn_X_train.shape[1]*args.hidden_width_scaler
     hidden_depth = args.hidden_depth
     output_size = nn_Y_train.shape[1]
-    model = NN_model.NeuralNet(input_size, hidden_size, hidden_depth, output_size, device)
+    model = NN_model.NeuralNetSimple(input_size, hidden_size, hidden_depth, output_size, device)
     #optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.7)
     print(model)
 
     #Train and Validate:
@@ -195,6 +203,8 @@ if __name__ == "__main__":
         _, _, error_ratio_val = evaluate.evaluate_error_rate(args, predicted_val, nn_Y_val, normer, raw_data_val, showup=False)
         train_error_history.append(error_ratio_train)
         validate_error_history.append(error_ratio_val)
+        scheduler.step(error_ratio_val)
+        print("Using lr:", optimizer.state_dict()['param_groups'][0]['lr'])
         model.eval()
         if epoch>1:
             if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
@@ -211,7 +221,6 @@ if __name__ == "__main__":
         #Infos:
         train_loss_history.append(train_loss)
         validate_loss_history.append(validate_loss)
-        train_loss_history[0] = validate_loss_history[0]
         print("Train set  Average loss: {:.8f}".format(train_loss))
         print('Validate set Average loss: {:.8f}'.format(validate_loss))
     #if args.VISUALIZATION:

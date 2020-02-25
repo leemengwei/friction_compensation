@@ -6,13 +6,14 @@
 
 #include <torch/script.h>
 
+//at::Tensor predict(torch::jit::script::Module model, std::vector<torch::jit::IValue> inputs);
+//std::vector<torch::jit::IValue> get_data(bool use_cuda);
+//torch::jit::script::Module get_model(const char* model_path, bool use_cuda);
+
 
 //Function to load model
-//std::shared_ptr<torch::jit::script::Module> get_model(const char* model_path, bool use_cuda){
 torch::jit::script::Module get_model(const char* model_path, bool use_cuda) {
-  //std::shared_ptr<torch::jit::script::Module> module;
   torch::jit::script::Module module;
-  std::cout<<"Loading "<<model_path<<std::endl;
   try {
     module = torch::jit::load(model_path);
   }
@@ -21,7 +22,7 @@ torch::jit::script::Module get_model(const char* model_path, bool use_cuda) {
     exit(-1);
   }
   if (use_cuda){
-   module.to(at::kCUDA);
+    module.to(at::kCUDA);
   }
   return module;
 }
@@ -74,18 +75,6 @@ void postprocess_data(std::vector<float> &out) {
     }
 }
 
-//Tensor to float
-std::vector<float> tensor_to_float(at::Tensor output, bool use_cuda){
-  at::Tensor cpu_output;
-  if(use_cuda){
-    cpu_output = output.to(at::kCPU);
-  }
-  else{
-    cpu_output = output;
-  }
-  std::vector<float> out(cpu_output.data<float>(), cpu_output.data<float>() + cpu_output.numel());
-  return out;
-}
 
 int main(int argc, const char* argv[]) {
  
@@ -96,10 +85,9 @@ int main(int argc, const char* argv[]) {
 
   //Get model:
   const char* model_path="../models/NN_weights_uniform_C.pt";
-  torch::jit::script::Module tmp;
   torch::jit::script::Module model=get_model(model_path, use_cuda);
-  //std::shared_ptr<torch::jit::script::Module> model=get_model(model_path, use_cuda);
 
+ // while (true){
       //Get data:
       float flat[num_of_rows][num_of_cols]={
           1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
@@ -111,15 +99,15 @@ int main(int argc, const char* argv[]) {
       //Forward run:
       at::Tensor output;
       output = predict(use_cuda, model, flat);
-      
+
       //Convert tensor back to float, using vector:
-      std::vector<float> out;
-      out = tensor_to_float(output, use_cuda);
+      std::vector<float> out(output.data<float>(), output.data<float>() + output.numel());
 
       //Postprocess data:
       postprocess_data(out);
 
       std::cout << out << '\n';
       
+ // }
 }
 

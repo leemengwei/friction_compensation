@@ -20,14 +20,13 @@
 
 
 3. Exec compile with libtorch_gpu
-        mkdir build;
-        rm build/* -r;cd build;cmake ..;cd ..;
-	cd build/;make;cd ..;
+        mkdir build; cd build
+	-cmake -DCMAKE_PREFIX_PATH=/home/nvidia/limengwei/C_project_arm/libtorch_no_cuda ..
+	and
+	-make
 
 4. Ok to run
-	cd build/;./C_load_and_run_API;cd ..; #run single thread and multi thread
-	./run_all_cpu.sh;   #multi process cpu (checkout first part given by single thread by C++)
-	./run_all_gpu.sh;   #multi process gpu (checkout first part given by single thread by C++)
+
 
 #MAKE Instructions:
 #https://www.cnblogs.com/lidabo/p/6381772.html
