@@ -20,6 +20,7 @@ def get_part_model(X, name):
     #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
     model = NN_model.NeuralNetSimple(input_size=X.shape[0], hidden_size=X.shape[0]*5, hidden_depth=3, output_size=1, device=torch.device(device_type))
     model.load_state_dict(torch.load(model_path).state_dict())
+    embed()
     model = model.to(device_type)
     return model
 
