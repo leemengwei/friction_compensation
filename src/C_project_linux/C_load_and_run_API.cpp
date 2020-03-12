@@ -1,7 +1,10 @@
 #define num_of_cols 25
 #define num_of_rows 6
-#define LOOP 1000
-#define TIME_INTERVAL 24   //ms
+#define LOOP 10000
+#define TIME_INTERVAL 1   //ms
+#define WARM_UP_TIME_SINGLE 100
+#define WARM_UP_TIME_MULTI 100
+#define REFRESH_CACHE true
 
 #include <iostream>
 #include <memory>
@@ -10,7 +13,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
-
+#include "ATen/Parallel.h"
+#include <omp.h>
 using namespace std;
 
 struct thread_data{
@@ -78,20 +82,28 @@ torch::jit::script::Module get_model(const char* model_path, bool use_cuda) {
 
 //Core to run
 std::vector<float> predict(float flat[][num_of_cols], float X_mean[][num_of_cols], float X_standard[][num_of_cols], bool use_cuda, torch::jit::script::Module model, float Y_mean, float Y_standard, std::vector<float> final_out) {
+  at::set_num_threads(1);
   float preprocessed_data[num_of_rows][num_of_cols];
   std::vector<torch::jit::IValue> inputs;
   at::Tensor output;
   //Preprocess data:
   inputs = preprocessing(flat, X_mean, X_standard, preprocessed_data, use_cuda);
   //Forward:
+  //timeval tic, toc;
+  //double tictoc;
+  //gettimeofday(&tic,0);
   output = model.forward(inputs).toTensor();  
+  //gettimeofday(&toc,0);
+  //tictoc = 1000000*(toc.tv_sec-tic.tv_sec)+toc.tv_usec-tic.tv_usec; //us
+  //tictoc /= 1000; //ms
+  //std::cout<<"Time predict"<<tictoc<<"ms"<<endl;
   //Postprocess data:
   final_out = postprocessing(output, Y_mean, Y_standard);
   return final_out;
 }
 
-//Core to run dry
-std::vector<float> predict_dry(float flat[][num_of_cols], float X_mean[][num_of_cols], float X_standard[][num_of_cols], bool use_cuda, torch::jit::script::Module model, float Y_mean, float Y_standard, std::vector<float> final_out) {
+//Core to dry-run
+std::vector<float> predict_dry_run(float flat[][num_of_cols], float X_mean[][num_of_cols], float X_standard[][num_of_cols], bool use_cuda, torch::jit::script::Module model, float Y_mean, float Y_standard, std::vector<float> final_out) {
   usleep(5*1000);//ms
   ;
   return final_out;
@@ -100,20 +112,30 @@ std::vector<float> predict_dry(float flat[][num_of_cols], float X_mean[][num_of_
 // 线程的运行函数
 void* single_start(void*threadarg)
 {
-    //std::cout << "Hello Runoob！" << endl;
-    struct thread_data *my_data;
-    my_data = (struct thread_data *) threadarg;
+  struct thread_data *my_data;
+  my_data = (struct thread_data *) threadarg;
+  for (int loop=0; loop<LOOP; loop++){
+    if(REFRESH_CACHE){
+      for(int row=0;row<num_of_rows;row++){
+        for(int col=0;col<num_of_cols;col++){
+          my_data->flat[row][col] = loop;
+        }
+      }
+    }
+    //Warm up? So far, each thread is started only once and loop within, thus warming up itself. Yet this comsumption was undesirably calculated.
     my_data->final_out = predict(my_data->flat, my_data->X_mean, my_data->X_standard, my_data->use_cuda, my_data->model, my_data->Y_mean, my_data->Y_standard, my_data->final_out);
-    //pthread_exit(NULL);
+  usleep(TIME_INTERVAL*1000);
+  }
+  //pthread_exit(NULL);
 }
 
 int main(int argc, const char* argv[]) {
- 
+  //omp_set_num_threads(1);
   //Config:
-  bool speed_test=true;
   bool use_cuda=(argc>1)?true:false;
   if (use_cuda){std::cout<<"USING GPU"<<std::endl;}
   else{std::cout<<"USING CPU"<<std::endl;}
+  std::cout<<"Warmed up for (s)"<<WARM_UP_TIME_SINGLE<<" and (m)"<<WARM_UP_TIME_MULTI<<" times. Refresh cache: "<<REFRESH_CACHE<<endl;
 
   //Timers:
   timeval tic, toc;
@@ -154,17 +176,21 @@ int main(int argc, const char* argv[]) {
   std::vector<float> final_out;
 
   //Warm up:
+  for (int x=0;x<WARM_UP_TIME_SINGLE;x++){
   final_out = predict(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
+  }
   gettimeofday(&tic,0);
   for (int loop=0;loop<LOOP;loop++){
-    //Refresh cache;
-    for(int row=0;row<=num_of_rows;row++){
-      for(int col=0;col<=num_of_cols;col++){
-        flat[row][col] = loop;
+    if(REFRESH_CACHE){
+      for(int row=0;row<num_of_rows;row++){
+        for(int col=0;col<num_of_cols;col++){
+          flat[row][col] = loop;
+        }
       }
     }
     //Forward run:
-      final_out = predict(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
+    final_out = predict(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
+    usleep(TIME_INTERVAL*1000);
   }
   gettimeofday(&toc,0);
   tictoc = 1000000*(toc.tv_sec-tic.tv_sec)+toc.tv_usec-tic.tv_usec; //us
@@ -172,10 +198,9 @@ int main(int argc, const char* argv[]) {
   std::cout<<"Time used over LOOPs("<<LOOP<<"): "<<tictoc/LOOP<<"ms"<<endl;
 
   //Report:
-  for (int i=0;i<=5;i++){
-    std::cout<<final_out[i];
+  for (int i=0;i<num_of_rows;i++){
+    std::cout<<final_out[i]<<" ";
   }
-
 
 
   std::cout<<"\n\n\nNow on multi thread"<<endl;
@@ -406,53 +431,46 @@ int main(int argc, const char* argv[]) {
   td[4].final_out = final_out4;
   td[5].final_out = final_out5;
 
-  //Warm up for each thread model:
-  for (int i=0;i<=5;i++){
-    td[i].final_out = predict(td[i].flat, td[i].X_mean, td[i].X_standard, td[i].use_cuda, td[i].model, td[i].Y_mean, td[i].Y_standard, td[i].final_out);
-    ;
-  }
-  
-  //Starting thread:
+  //Starting threads:
   pthread_t t[6];
   float running_t = 0.0;
+  //Warm up for each thread model:
+  //for (int x=0;x<WARM_UP_TIME_MULTI;x++){
+  //  for (int i=0;i<=5;i++){
+  //    td[i].final_out = predict(td[i].flat, td[i].X_mean, td[i].X_standard, td[i].use_cuda, td[i].model, td[i].Y_mean, td[i].Y_standard, td[i].final_out);
+  //  }
+  //}
   gettimeofday(&tic,0);
-  for (int loop=0; loop<LOOP; loop++) {
-    //Refresh cache;
-    for(int joint_num=0;joint_num<=5;joint_num++)
-      for(int row=0;row<=num_of_rows;row++){
-        for(int col=0;col<=num_of_cols;col++){
-            td[joint_num].flat[row][col] = loop;
-        }
-      }
-    //创建的线程id，线程属性，调用的函数，传入的参数
-    pthread_create(&t[0], NULL, single_start, (void *)&td[0]);
-    pthread_create(&t[1], NULL, single_start, (void *)&td[1]);
-    pthread_create(&t[2], NULL, single_start, (void *)&td[2]);
-    pthread_create(&t[3], NULL, single_start, (void *)&td[3]);
-    pthread_create(&t[4], NULL, single_start, (void *)&td[4]);
-    pthread_create(&t[5], NULL, single_start, (void *)&td[5]);
-    //Join together
-    pthread_join(t[0],NULL);
-    pthread_join(t[1],NULL);
-    pthread_join(t[2],NULL);
-    pthread_join(t[3],NULL);
-    pthread_join(t[4],NULL);
-    pthread_join(t[5],NULL);
-    //等线程退出后，进程才结束 否则强制
-    //pthread_exit(NULL);
-    //running_t += tictoc;
-    //usleep(TIME_INTERVAL*1000);
-  }
+  //创建的线程id，线程属性，调用的函数，传入的参数
+  pthread_create(&t[0], NULL, single_start, (void *)&td[0]);
+  pthread_create(&t[1], NULL, single_start, (void *)&td[1]);
+  pthread_create(&t[2], NULL, single_start, (void *)&td[2]);
+  pthread_create(&t[3], NULL, single_start, (void *)&td[3]);
+  pthread_create(&t[4], NULL, single_start, (void *)&td[4]);
+  pthread_create(&t[5], NULL, single_start, (void *)&td[5]);
+  //Join together
+  pthread_join(t[0],NULL);
+  pthread_join(t[1],NULL);
+  pthread_join(t[2],NULL);
+  pthread_join(t[3],NULL);
+  pthread_join(t[4],NULL);
+  pthread_join(t[5],NULL);
+  //等线程退出后，进程才结束 否则强制
+  //pthread_exit(NULL);
+  //running_t += tictoc;
   gettimeofday(&toc,0);
   tictoc = 1000000*(toc.tv_sec-tic.tv_sec)+toc.tv_usec-tic.tv_usec; //us
   tictoc /= 1000; //ms
+  std::cout<<"\nMulti thread time used over each LOOP("<<LOOP<<"): "<<tictoc/LOOP<<"ms"<<std::endl;
 
   //Report:
   for (int i=0;i<=5;i++){
-    std::cout<<td[i].final_out<<endl;
+    for (int j=0;j<num_of_rows;j++){
+      std::cout<<td[i].final_out[j]<<" ";
+    }
+    std::cout<<endl;
   }
 
-  std::cout<<"\nMulti thread time used over each LOOP("<<LOOP<<"): "<<tictoc/LOOP<<"ms"<<std::endl;
 
   std::cout << "\nTHE END" << '\n';
   

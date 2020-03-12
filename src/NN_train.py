@@ -208,7 +208,7 @@ if __name__ == "__main__":
         model.eval()
         if epoch>1:
             if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
-                torch.save(model, "../models/NN_weights_best_%s"%args.further_mode)
+                torch.save(model.eval(), "../models/NN_weights_best_%s"%args.further_mode)
                 pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     print("NN:", "NONE")
     print("Error rate:", np.array(history_error_ratio_val).min(), "at index", np.array(history_error_ratio_val).argmin())
 
-    torch.save(model, "../models/NN_weights_%s"%args.further_mode)
+    torch.save(model.eval(), "../models/NN_weights_%s"%args.further_mode)
     #embed()
 
 

@@ -136,4 +136,9 @@ libtorch*
 *.o
 .vs/
 
+*.txt
 *compensation.txt
+*.pptx
+*.ppt
+*.pdf
+doc/

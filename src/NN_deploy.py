@@ -1,6 +1,7 @@
 #python NN_deploy.py  -V --mode='low_high'
 import argparse
 import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import data_stuff
@@ -13,6 +14,29 @@ import copy
 import plot_utils
 warnings.filterwarnings("ignore")
 
+class NeuralNetSimple(nn.Module):
+    #This will do with:
+    #--num_of_batch=10000 --hidden_width_scaler~5(any) --learning_rate=0.2
+    def __init__(self, input_size, hidden_size, hidden_depth, output_size, device):
+        super(NeuralNetSimple, self).__init__()
+        self.fc_in = nn.Linear(input_size, hidden_size).to(device)
+        self.fcs = nn.ModuleList()   #collections.OrderedDict()
+        self.hidden_depth = hidden_depth
+        for i in range(self.hidden_depth):
+            self.fcs.append(nn.Linear(hidden_size, hidden_size).to(device))
+        self.fc_out = nn.Linear(hidden_size, output_size).to(device)
+        #activations:
+        self.ths = nn.Tanhshrink().to(device)
+        self.l_relu = nn.LeakyReLU().to(device)
+    def forward(self, x):
+        out = self.fc_in(x)
+        for i in range(self.hidden_depth):
+            out = self.fcs[i](out)
+            out = self.l_relu(out)
+        out = self.fc_out(out)
+        out = self.ths(out)
+        return out
+
 def get_part_model(X, name):
     model_path = "../models/NN_weights_best_%s"%name
     print("Loading part model:%s"%model_path)
@@ -20,7 +44,6 @@ def get_part_model(X, name):
     #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
     model = NN_model.NeuralNetSimple(input_size=X.shape[0], hidden_size=X.shape[0]*5, hidden_depth=3, output_size=1, device=torch.device(device_type))
     model.load_state_dict(torch.load(model_path).state_dict())
-    embed()
     model = model.to(device_type)
     return model
 
@@ -32,6 +55,8 @@ def to_C(args, model_part1, model_part2, inputs):
         name1 = args.mode.split('_')[-1]    #'all'
         name2 = args.mode.split('_')[-1]    #'all' as well
     #Trace with jit:
+    model_part1.eval()
+    model_part2.eval()
     traced_module1 = torch.jit.trace(model_part1, inputs)
     traced_module2 = torch.jit.trace(model_part2, inputs)
     model1_path = "../models/NN_weights_%s_C.pt"%name1
@@ -71,6 +96,7 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
 
     #Forward to get output:
     inputs = torch.FloatTensor(normed_data_X.T).to(device_type)
+    embed()
     output_part1 = model_part1(inputs[part1_index]).detach().cpu().numpy()
     output_part2 = model_part2(inputs[part2_index]).detach().cpu().numpy()
     #Speed test:
