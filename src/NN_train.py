@@ -90,9 +90,8 @@ if __name__ == "__main__":
     parser.add_argument('--Quick_data', "-Q", action='store_true', default=False)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high"], required=True)
     parser.add_argument('--further_mode', type=str, choices=["acc", "uniform", "low", "high", "all"], required=True)
-    parser.add_argument('--pool_name', type=str, required=True)
     args = parser.parse_args()
-    args.axis_num = args.axis_num - 1
+    args.pool_name = "data-j%s"%args.axis_num
     
     print("Start...%s"%args)
     if not args.NO_CUDA:
@@ -118,14 +117,12 @@ if __name__ == "__main__":
     raw_data_part = raw_data.iloc[this_part]
     data_X = np.empty(shape=(0, len(raw_data_part)))
     input_columns_names = []
-    for i in [args.axis_num]:
-        input_columns_names += ['axc_pos_%s'%i]
-    for i in [args.axis_num]:
-        input_columns_names += ['axc_speed_%s'%i]
-    for i in [args.axis_num]:
-        input_columns_names += ['axc_torque_ffw_gravity_%s'%i]
-    for i in [args.axis_num]:
-        input_columns_names += ['axc_torque_ffw_%s'%i]
+    #data is index from 0, thus:
+    local_axis_num = args.axis_num-1
+    input_columns_names += ['axc_pos_%s'%local_axis_num]
+    input_columns_names += ['axc_speed_%s'%local_axis_num]
+    input_columns_names += ['axc_torque_ffw_gravity_%s'%local_axis_num]
+    input_columns_names += ['axc_torque_ffw_%s'%local_axis_num]
     input_columns_names += ['Temp']
     output_columns_names = ['need_to_compensate']
     data_X = raw_data_part[input_columns_names].values.T
@@ -135,7 +132,9 @@ if __name__ == "__main__":
     #my_analyzer.show_me_input_data(raw_data_part[input_columns_names])
 
     #Normalize data:
-    normer = data_stuff.normalizer(data_X)
+    normer = data_stuff.normalizer(data_X, data_Y, args)
+    normer.generate_statistics()
+    normer.get_statistics(data_X.shape[1])
     X_normed, Y_normed = normer.normalize_XY(data_X, data_Y)
 
     #MUST CHECK INPUT DISTRIBUTION!!!!!!
@@ -179,9 +178,10 @@ if __name__ == "__main__":
     model = NN_model.NeuralNetSimple(input_size, hidden_size, hidden_depth, output_size, device)
     #optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.7)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=7, factor=0.7)
     print(model)
 
+    #embed()
     #Train and Validate:
     print("Now training...")
     plt.ion()
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         model.eval()
         if epoch>1:
             if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
-                torch.save(model.eval(), "../models/NN_weights_best_%s"%args.further_mode)
+                torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
                 pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
@@ -223,8 +223,7 @@ if __name__ == "__main__":
         validate_loss_history.append(validate_loss)
         print("Train set  Average loss: {:.8f}".format(train_loss))
         print('Validate set Average loss: {:.8f}'.format(validate_loss))
-    #if args.VISUALIZATION:
-    if True:
+    if args.VISUALIZATION:
         plt.close()
         plt.ioff()
         plt.clf()
@@ -234,8 +233,9 @@ if __name__ == "__main__":
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.legend()
-        plt.draw()
-        plt.pause(2)
+        #plt.draw()
+        #plt.pause(2)
+        plt.show()
         plt.close()
 
     names_note = "NN weights"
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     print("NN:", "NONE")
     print("Error rate:", np.array(history_error_ratio_val).min(), "at index", np.array(history_error_ratio_val).argmin())
 
-    torch.save(model.eval(), "../models/NN_weights_%s"%args.further_mode)
+    torch.save(model.eval(), "../models/NN_weights_%s_%s"%(args.further_mode, args.axis_num))
     #embed()
 
 

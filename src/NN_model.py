@@ -35,7 +35,7 @@ class NeuralNet(nn.Module):
 
 class NeuralNetSimple(nn.Module):
     #This will do with:
-    #--num_of_batch=10000 --hidden_width_scaler~5(any) --learning_rate=0.2
+    #--num_of_batch=10000 --hidden_width_scaler~5(any) --learning_rate=0.2 --axis_num=4
     def __init__(self, input_size, hidden_size, hidden_depth, output_size, device):
         super(NeuralNetSimple, self).__init__()
         self.fc_in = nn.Linear(input_size, hidden_size).to(device)

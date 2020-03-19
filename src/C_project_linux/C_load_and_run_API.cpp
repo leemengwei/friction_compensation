@@ -1,7 +1,7 @@
 #define num_of_cols 25
 #define num_of_rows 6
 #define LOOP 10000
-#define TIME_INTERVAL 1   //ms
+#define TIME_INTERVAL 24   //ms
 #define WARM_UP_TIME_SINGLE 100
 #define WARM_UP_TIME_MULTI 100
 #define REFRESH_CACHE true

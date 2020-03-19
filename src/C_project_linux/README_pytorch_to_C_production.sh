@@ -4,6 +4,14 @@
 #如下做法，搭建C环境加载、运行模型。（纯净环境，无gpu和caffe2需求，只是需要安装cuda和cudnn的库依赖(对于有显卡的来说，没有的更简单)）
 #参考：https://pytorch.org/tutorials/advanced/cpp_export.html
 
+#From scratch build:
+#ExternalPrerequest:
+#cmake
+#gcc
+#build-essential     (g++)
+
+
+
 1. Install cuda
   	-Sh cuda-xxxx.run
  
