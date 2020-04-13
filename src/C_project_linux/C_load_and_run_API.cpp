@@ -41,7 +41,7 @@ void read_X_stuff(string file, float X_stuff[])
   infile.close(); 
 }
 
-float read_Y_stuff(string file, float& Y_stuff)
+void read_Y_stuff(string file, float& Y_stuff)
 {
   ifstream infile; 
   infile.open(file); 
