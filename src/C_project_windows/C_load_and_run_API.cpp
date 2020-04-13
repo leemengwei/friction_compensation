@@ -8,10 +8,11 @@
 
 #include <iostream>
 #include <memory>
-#include <sys/time.h>
+#include <time.h>
 #include <torch/script.h>
-#include <pthread.h>
-#include <unistd.h>
+//#include <pthread.h>
+//#include <unistd.h>
+#include<windows.h>
 #include <string.h>
 #include "ATen/Parallel.h"
 #include <omp.h>
@@ -117,8 +118,8 @@ std::vector<float> predict(float flat[][NUM_OF_COLS], float X_mean[], float X_st
 
 //Core to dry-run
 std::vector<float> predict_dry_run(float flat[][NUM_OF_COLS], float X_mean[], float X_standard[], bool use_cuda, torch::jit::script::Module model, float Y_mean, float Y_standard, std::vector<float> final_out) {
-  usleep(5*1000);//ms
-  ;
+  //usleep(5*1000);//ms
+  Sleep(5*1000);//ms
   return final_out;
 }
 
@@ -128,9 +129,9 @@ void warm_up_single(const char* model_path, float flat[][NUM_OF_COLS], float X_m
     final_out = predict(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
   }
 }
+
 // 线程的运行函数
-void* start_a_thread(void*threadarg)
-{
+void* start_a_thread(void*threadarg){
   struct thread_data *my_data;
   my_data = (struct thread_data *) threadarg;
   for (int loop=0; loop<LOOP; loop++){
@@ -143,11 +144,13 @@ void* start_a_thread(void*threadarg)
     }
     //Warm up? So far, each thread is started only once and loop within, thus warming up itself. Yet this comsumption was undesirably calculated.
     my_data->final_out = predict(my_data->flat, my_data->X_mean, my_data->X_standard, my_data->use_cuda, my_data->model, my_data->Y_mean, my_data->Y_standard, my_data->final_out);
-  usleep(TIME_INTERVAL*1000);
+  //usleep(TIME_INTERVAL*1000);
+  Sleep(TIME_INTERVAL*1000);
   }
   //pthread_exit(NULL);
 }
 
+/*
 void threads_start_speed_test_all_in_one(bool use_cuda){  
   std::cout<<"\n\n\nNow on multi thread"<<endl;
   //Timers:
@@ -332,7 +335,9 @@ void threads_start_speed_test_all_in_one(bool use_cuda){
     std::cout<<endl;
   }
 }
+*/
 
+/*
 void single_speed_test_loop(float flat[][NUM_OF_COLS], float X_mean[], float X_standard[], bool use_cuda, torch::jit::script::Module model, float Y_mean, float Y_standard, std::vector<float> final_out){
   //Now speed test run:
   timeval tic, toc;
@@ -361,7 +366,7 @@ void single_speed_test_loop(float flat[][NUM_OF_COLS], float X_mean[], float X_s
     std::cout<<final_out[i]<<" ";
   }
 }
-
+*/
 
 int main(int argc, const char* argv[]) {
 
