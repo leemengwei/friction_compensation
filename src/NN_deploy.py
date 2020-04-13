@@ -1,3 +1,4 @@
+#coding: utf-8
 #python NN_deploy.py  -V --mode='low_high'
 import argparse
 import torch
@@ -36,13 +37,13 @@ def to_C(args, model_part1, model_part2, inputs):
     model_part2.eval()
     traced_module1 = torch.jit.trace(model_part1, inputs)
     traced_module2 = torch.jit.trace(model_part2, inputs)
-    model1_path = "../models/NN_weights_%s_C.pt"%name1
-    model2_path = "../models/NN_weights_%s_C.pt"%name2
+    model1_path = "../models/NN_weights_%s_C_%s.pt"%(name1, args.axis_num)
+    model2_path = "../models/NN_weights_%s_C_%s.pt"%(name2, args.axis_num)
     traced_module1.save(model1_path)
     traced_module2.save(model2_path)
-    print("C models saved")
+    print("C models saved", model1_path, model2_path)
 
-def get_compensate_force(args, raw_plan, part1_index, part2_index):
+def get_data_six(args, raw_plan, mode):
     #Take out what we need:
     #Make inputs:
     raw_data_X = np.empty(shape=(0, len(raw_plan)))
@@ -56,12 +57,17 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
     input_columns_names += ['Temp']
     raw_data_X = raw_plan[input_columns_names].values.T
     raw_data_Y = raw_plan['need_to_compensate'].values
-   
+    #If want to check output with C code
+    #embed()
+    #raw_data_X[:,:]=0
+
     #Normalize data:
     normer = data_stuff.normalizer(raw_data_X, raw_data_Y, args)
     normer.get_statistics(raw_data_X.shape[1])
     normed_data_X, normed_data_Y = normer.normalize_XY(raw_data_X, raw_data_Y)
+    return normed_data_X, normed_data_Y, normer
 
+def get_model(args):
     #Get model:
     if 'all' not in args.mode:
         model_part1 = get_part_model(normed_data_X, args.mode.split('_')[0], args.axis_num)     #'acc'
@@ -69,30 +75,33 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
     else:   # 'acc_uniform_all', 'low_high_all'
         model_part1 = get_part_model(normed_data_X, args.mode.split('_')[-1], args.axis_num)    #'all'
         model_part2 = get_part_model(normed_data_X, args.mode.split('_')[-1], args.axis_num)    #'all' as well
+    return model_part1, model_part2
 
+def get_compensate_force(args, normed_data_X, normed_data_Y, model_part1, model_part2, part1_index, part2_index):
     #Forward to get output:
     inputs = torch.FloatTensor(normed_data_X.T).to(device_type)
     output_part1 = model_part1(inputs[part1_index]).detach().cpu().numpy()
     output_part2 = model_part2(inputs[part2_index]).detach().cpu().numpy()
+
     #Speed test:
-    if args.speed_test:
-        inputs[:,:]=1
-        #On default device:
-        for i in range(10): 
-            model_part1(inputs[:args.buffer_length])
-        tic = time.time() 
-        for i in range(1000): 
-            model_part1(inputs[:args.buffer_length])
-        print((time.time()-tic)/1000*1000, "ms on %s"%device_type)  
-        #On cpu deivce:
-        cpu_model = copy.deepcopy(model_part1).cpu()
-        cpu_inputs = inputs.cpu()
-        for i in range(10): 
-            cpu_model(cpu_inputs[:args.buffer_length])
-        tic = time.time() 
-        for i in range(1000): 
-            cpu_model(cpu_inputs[:args.buffer_length])
-        print((time.time()-tic)/1000*1000, "ms on cpu")  
+    #if args.speed_test:
+    #    inputs[:,:]=1
+    #    #On default device:
+    #    for i in range(10): 
+    #        model_part1(inputs[:args.buffer_length])
+    #    tic = time.time() 
+    #    for i in range(1000): 
+    #        model_part1(inputs[:args.buffer_length])
+    #    print((time.time()-tic)/1000*1000, "ms on %s"%device_type)  
+    #    #On cpu deivce:
+    #    cpu_model = copy.deepcopy(model_part1).cpu()
+    #    cpu_inputs = inputs.cpu()
+    #    for i in range(10): 
+    #        cpu_model(cpu_inputs[:args.buffer_length])
+    #    tic = time.time() 
+    #    for i in range(1000): 
+    #        cpu_model(cpu_inputs[:args.buffer_length])
+    #    print((time.time()-tic)/1000*1000, "ms on cpu")  
 
     #import my_analyzer
     #my_analyzer.performance_shape(raw_plan, inputs, model_part1)
@@ -109,7 +118,7 @@ def get_compensate_force(args, raw_plan, part1_index, part2_index):
 
 
 if __name__ == "__main__":
-    print("Deploy time NN model...")
+    print("NN Deploy test...")
 
     #Configs:
     parser = argparse.ArgumentParser(description='Friction.')
@@ -118,9 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('--buffer_length', type=int, default = 6)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high", "acc_uniform_all", "low_high_all"], required=True)
     parser.add_argument('--data_path', type=str, default = "../data/planning.csv")
-    parser.add_argument('--Quick_data', '-Q', action='store_true', default=False)
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
-    parser.add_argument('--speed_test', "-SPD", action='store_true', default=False)
     parser.add_argument('--no_cuda', action='store_true', default=False)
     args = parser.parse_args()
     cuda_is_available = torch.cuda.is_available()
@@ -132,13 +139,17 @@ if __name__ == "__main__":
     else:
         device_type = 'cuda'
         print("Using gpu")
-
-    #Get plans:
     mode = ['deploy', args.mode]
+
+    #Get planned data:
     raw_plan, part1_index, part2_index = data_stuff.get_data(args, mode)
+    normed_data_X, normed_data_Y, normer = get_data_six(args, raw_plan, mode)
+
+    #Get models:
+    model_part1, model_part2 = get_model(args)
 
     #Data_preprocess, and, Get result:
-    output_full_series, normed_data_Y, model_returned, inputs, normer = get_compensate_force(args, raw_plan, part1_index, part2_index)
+    output_full_series, normed_data_Y, model_returned, inputs, normer = get_compensate_force(args, normed_data_X, normed_data_Y, model_part1, model_part2, part1_index, part2_index)
 
     #Evaluate here:
     #Note evaluation take place with normed data, and then denormed within.
@@ -148,6 +159,7 @@ if __name__ == "__main__":
     #reference_full_series = raw_plan['need_to_compensate'].values
     compensate_full_series = normer.denormalize_Y(output_full_series)
     compensate_full_series = np.clip(compensate_full_series, -args.max_force, args.max_force)
+    print(compensate_full_series)
 
     #To show:
     local_axis_num = args.axis_num - 1
@@ -157,10 +169,10 @@ if __name__ == "__main__":
 
     #Visualize:
     if args.VISUALIZATION:
-        plt.plot(meassured, label='reference_feedback', alpha=0.5)
-        plt.scatter(range(len(raw_plan)), planned, label='original', color='gray', s=1, alpha=0.5)
-        plt.scatter(part1_index, compensated[part1_index], label='part1_predicted_feedback', color='green', s=1)
-        plt.scatter(part2_index, compensated[part2_index], label='part2_predicted_feedback', color='red', s=1)
+        plt.plot(meassured, label=r'real_target', alpha=0.5)
+        plt.scatter(range(len(raw_plan)), planned, label=r'dynamic_model+gravity', color='gray', s=1, alpha=0.5)
+        plt.scatter(part1_index, compensated[part1_index], label=r'after compensate', color='green', s=1)
+        plt.scatter(part2_index, compensated[part2_index], label=r'after compensate', color='red', s=1)
         plt.legend()
         plt.title("Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated, error_original))
         print("One of the reason it may shows higher error rate than expected is because some uniform speed range be ommited during train/val evaluation")

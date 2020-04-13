@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from math import factorial
 from tqdm import tqdm 
 import pickle
+np.set_printoptions(suppress=True)
 
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     try:
@@ -94,6 +95,7 @@ def get_data(args, mode):
 
     #Get data in terms of key words [mode]:
     local_axis_num = args.axis_num - 1
+    print("On axis %s, with local index %s"%(args.axis_num, local_axis_num))
     #Train time mode:
     if "train" in mode:
         quick_path = "../data/tmp_del/quick_%s.pkl"%args.pool_name
@@ -143,8 +145,8 @@ def get_data(args, mode):
         print("Reading data", args.data_path)
         datas = pd.read_csv(args.data_path, sep=' ', low_memory=False, index_col=None)
         datas = datas.drop(datas.shape[0]-1).astype(float)
-        if args.Quick_data:
-            datas = pickle.load(open(quick_path, 'rb'))[:100000]
+        #if args.Quick_data:
+        #    datas = pickle.load(open(quick_path, 'rb'))[:100000]
         try:
             datas = datas.drop('line', axis=1)
         except:
@@ -203,10 +205,10 @@ class normalizer(object):
         self._Y_mean_never_touch_dynamic = np.array([Y.mean()])
         self._Y_std_never_touch_dynamic = np.array([Y.std()+1e-9])
     def generate_statistics(self):
-        np.savetxt("../statistics/X_mean_%s"%self.axis_num, self._X_mean_never_touch_dynamic)
-        np.savetxt("../statistics/X_std_%s"%self.axis_num, self._X_std_never_touch_dynamic)
-        np.savetxt("../statistics/Y_mean_%s"%self.axis_num, self._Y_mean_never_touch_dynamic)
-        np.savetxt("../statistics/Y_std_%s"%self.axis_num, self._Y_std_never_touch_dynamic)
+        np.savetxt("../statistics/X_mean_%s"%self.axis_num, self._X_mean_never_touch_dynamic, fmt='%.12f')
+        np.savetxt("../statistics/X_std_%s"%self.axis_num, self._X_std_never_touch_dynamic, fmt='%.12f')
+        np.savetxt("../statistics/Y_mean_%s"%self.axis_num, self._Y_mean_never_touch_dynamic, fmt='%.12f')
+        np.savetxt("../statistics/Y_std_%s"%self.axis_num, self._Y_std_never_touch_dynamic, fmt='%.12f')
     def get_statistics(self, X_shape):
         static_X_mean_never_touch_dynamic = np.loadtxt("../statistics/X_mean_%s"%self.axis_num)
         static_X_std_never_touch_dynamic = np.loadtxt("../statistics/X_std_%s"%self.axis_num)
