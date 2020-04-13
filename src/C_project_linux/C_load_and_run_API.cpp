@@ -1,5 +1,5 @@
 #define NUM_OF_COLS 5   //feature dims
-#define NUM_OF_ROWS 6   //buffer length
+#define NUM_OF_ROWS 1   //buffer length
 #define LOOP 1000
 #define TIME_INTERVAL 0   //ms
 #define WARM_UP_TIME_SINGLE 100
@@ -155,51 +155,21 @@ void threads_start_speed_test_all_in_one(bool use_cuda){
   float tictoc;
 
   float flat1[NUM_OF_ROWS][NUM_OF_COLS]={
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0
       };
   float flat2[NUM_OF_ROWS][NUM_OF_COLS]={
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0
       };
   float flat3[NUM_OF_ROWS][NUM_OF_COLS]={
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0
       };
   float flat4[NUM_OF_ROWS][NUM_OF_COLS]={
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0
       };
   float flat5[NUM_OF_ROWS][NUM_OF_COLS]={
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0
       };
   float flat6[NUM_OF_ROWS][NUM_OF_COLS]={
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0
       };
   float X_mean1[NUM_OF_COLS];
@@ -394,42 +364,39 @@ void single_speed_test_loop(float flat[][NUM_OF_COLS], float X_mean[], float X_s
 
 
 int main(int argc, const char* argv[]) {
-  //omp_set_num_threads(1);
-  //Config:
+
+  //Report status:
   bool use_cuda=(argc>1)?true:false;
   if (use_cuda){std::cout<<"USING GPU"<<std::endl;}
   else{std::cout<<"USING CPU"<<std::endl;}
   std::cout<<"Warmed up for (s)"<<WARM_UP_TIME_SINGLE<<" and (m)"<<WARM_UP_TIME_MULTI<<" times. Refresh cache: "<<REFRESH_CACHE<<endl;
-  std::cout<<"\nNow on single thread"<<endl;
-
+  
+  //Configurations:
+  const char* model_path = "../models/NN_weights_all_C_1.pt";
+  const char* X_mean_filename = "../statistics/X_mean_1";
+  const char* X_std_filename = "../statistics/X_std_1";
+  const char* Y_mean_filename = "../statistics/Y_mean_1";
+  const char* Y_std_filename = "../statistics/Y_std_1";
+ 
   //Get model:
-  const char* model_path="../models/NN_weights_all_C_1.pt";
   torch::jit::script::Module model=get_model(model_path, use_cuda);
 
   //Get data:
-  float flat[NUM_OF_ROWS][NUM_OF_COLS] = {
-     0.0, 0.0, 0.0, 0.0, 0.0,
-     0.0, 0.0, 0.0, 0.0, 0.0,
-     0.0, 0.0, 0.0, 0.0, 0.0,
-     0.0, 0.0, 0.0, 0.0, 0.0,
-     0.0, 0.0, 0.0, 0.0, 0.0,
-     0.0, 0.0, 0.0, 0.0, 0.0
-     };
+  float flat[NUM_OF_ROWS][NUM_OF_COLS] = {0.0, 0.0, 0.0, 0.0, 0.0};
   float X_mean[NUM_OF_COLS];
-  read_X_stuff("../statistics/X_mean_1", X_mean);
   float X_standard[NUM_OF_COLS]; 
-  read_X_stuff("../statistics/X_std_1", X_standard);
   float Y_mean;
-  read_Y_stuff("../statistics/Y_mean_1", Y_mean);
   float Y_standard;
-  read_Y_stuff("../statistics/Y_std_1", Y_standard);
-
+  read_X_stuff(X_mean_filename, X_mean);
+  read_X_stuff(X_std_filename, X_standard);
+  read_Y_stuff(Y_mean_filename, Y_mean);
+  read_Y_stuff(Y_std_filename, Y_standard);
   std::vector<float> final_out;
 
   //Warm up single:
   warm_up_single(model_path, flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
 
-  //Run once:
+  //Run once API:
   final_out = predict(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
 
   //Report:
@@ -437,6 +404,7 @@ int main(int argc, const char* argv[]) {
   for (int i=0;i<NUM_OF_ROWS;i++){
     std::cout<<final_out[i]<<" ";
   }
+  std::cout << endl;
 
   //---------------------------Single thread speed test---------------------:
   //single_speed_test_loop(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
