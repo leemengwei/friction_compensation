@@ -16,7 +16,7 @@ import plot_utils
 warnings.filterwarnings("ignore")
 
 def get_part_model(shape_X, name, axis_num):
-    model_path = "../models/NN_weights_best_%s_%s"%(name, axis_num)
+    model_path = "../models_save/NN_weights_best_%s_%s"%(name, axis_num)
     print("Loading part model:%s"%model_path)
     #model = torch.load(model_path, map_location=torch.device(device_type))
     #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
