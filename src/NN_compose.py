@@ -115,7 +115,8 @@ if __name__ == "__main__":
 
     #Configs:
     parser = argparse.ArgumentParser(description='Friction.')
-    parser.add_argument('--max_force', type=int, default = 10)
+    parser.add_argument('--max_force', type=int, default = 1e9)
+    parser.add_argument('--time_to_plot', type=int, default = 1500)
     parser.add_argument('--buffer_length', type=int, default = 6)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high", "acc_uniform_all", "low_high_all"], default='acc_uniform_all')
     parser.add_argument('--data_path', type=str, default = "../data/standard_path/realtime-20200326-171651.rec-data-testzhixian.prb-log")
@@ -164,6 +165,7 @@ if __name__ == "__main__":
     error_treated_dict = {}
     for temp_axis in range(1,7):
         args.axis_num = temp_axis
+        args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][temp_axis-1]
         #Note evaluation take place with normed data, and then denormed within.
         error_original_dict[temp_axis], _, error_treated_dict[temp_axis] = evaluate.evaluate_error_rate(args, output_full_series_dict[temp_axis], normed_data_Y_dict[temp_axis], normer_dict[temp_axis], raw_plans_dict[temp_axis], showup=False)
 
@@ -188,16 +190,17 @@ if __name__ == "__main__":
     #And show:
     axes = []
     #Visualize:
-    #plt.ion()
+    #plt.ion(
     fig = plt.figure(figsize=(16,9))
+    length_of_plot = args.time_to_plot
     for temp_axis in range(1,7):
         axes.append(fig.add_subplot(2,3,temp_axis))
         args.axis_num = temp_axis
         local_axis_num = args.axis_num - 1
-        axes[temp_axis-1].plot(range(len(meassured_dict[temp_axis])), meassured_dict[temp_axis], label=r'real_target', alpha=0.5)
-        axes[temp_axis-1].scatter(range(len(raw_plans_dict[temp_axis])), planned_dict[temp_axis], label=r'dynamic_model+gravity', color='gray', s=1, alpha=0.5)
-        axes[temp_axis-1].scatter(part1_index_dict[temp_axis], compensated_dict[temp_axis][part1_index_dict[temp_axis]], label=r'after compensate', color='green', s=1)
-        axes[temp_axis-1].scatter(part2_index_dict[temp_axis], compensated_dict[temp_axis][part2_index_dict[temp_axis]], label=r'after compensate', color='red', s=1)
+        axes[temp_axis-1].plot(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', alpha=0.5)
+        axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=1, alpha=0.5)
+        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part1_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='green', s=1)
+        axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=1)
         axes[temp_axis-1].legend()
         axes[temp_axis-1].set_title("Axis:{2:d}, Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated_dict[temp_axis], error_original_dict[temp_axis], int(temp_axis)))
         #print("One of the reason it may shows higher error rate than expected is because some uniform speed range be ommited during train/val evaluation")

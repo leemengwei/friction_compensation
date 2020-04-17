@@ -75,11 +75,11 @@ def validate(args, model, device, validate_loader):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Friction.')
-    parser.add_argument('--learning_rate', '-LR', type=float, default=1e-2)
+    parser.add_argument('--learning_rate', '-LR', type=float, default=5e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
     parser.add_argument('--max_epoch', '-E', type=int, default=12)
 
-    parser.add_argument('--hidden_width_scaler', type=int, default = 1)
+    parser.add_argument('--hidden_width_scaler', type=int, default = 5)
     parser.add_argument('--hidden_depth', type=int, default = 3)
     parser.add_argument('--axis_num', type=int, default = 4)
     parser.add_argument('--Cuda_number', type=int, default = 0)
@@ -90,8 +90,17 @@ if __name__ == "__main__":
     parser.add_argument('--Quick_data', "-Q", action='store_true', default=False)
     parser.add_argument('--mode', type=str, choices=["acc_uniform", "low_high"], required=True)
     parser.add_argument('--further_mode', type=str, choices=["acc", "uniform", "low", "high", "all"], required=True)
+    parser.add_argument('--finetune', "-F", action='store_true', default=False)
     args = parser.parse_args()
-    args.pool_name = "data-j%s"%args.axis_num
+    if not args.finetune:
+        args.pool_name = "data-j%s"%args.axis_num
+    else:
+        print("Running as finetune and restart, ignore validate loss which is trival")
+        args.pool_name = "standard_path/"
+        args.learning_rate *= 0.01
+        args.test_ratio = 0.05
+        args.restart_model_path = "../models/NN_weights_best_all_%s"%args.axis_num
+    args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][args.axis_num-1]
     
     print("Start...%s"%args)
     if not args.NO_CUDA:
@@ -154,19 +163,20 @@ if __name__ == "__main__":
     #Form pytorch dataset:
     train_dataset = Data.TensorDataset(nn_X_train, nn_Y_train)
     validate_dataset = Data.TensorDataset(nn_X_val, nn_Y_val)
+    _batch_size = int(len(train_dataset)/args.num_of_batch)
     train_loader = Data.DataLoader( 
             dataset=train_dataset, 
-            batch_size=int(len(train_dataset)/args.num_of_batch),
+            batch_size=_batch_size,
             shuffle=True,
-            drop_last=True,
+            drop_last=False,
 	        num_workers=4,
             pin_memory=True
             )
     validate_loader = Data.DataLoader( 
             dataset=validate_dataset, 
-            batch_size=int(len(validate_dataset)/args.num_of_batch),
+            batch_size=_batch_size,
             shuffle=True,
-            drop_last=True,
+            drop_last=False,
 	        num_workers=4,
             pin_memory=True
             )
@@ -176,6 +186,8 @@ if __name__ == "__main__":
     hidden_depth = args.hidden_depth
     output_size = nn_Y_train.shape[1]
     model = NN_model.NeuralNetSimple(input_size, hidden_size, hidden_depth, output_size, device)
+    if args.finetune:
+        model.load_state_dict(torch.load(args.restart_model_path).state_dict())
     #optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=7, factor=0.7)
@@ -208,7 +220,10 @@ if __name__ == "__main__":
         model.eval()
         if epoch>1:
             if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
-                torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
+                if not args.finetune:
+                    torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
+                else:
+                    torch.save(model.eval(), "../models/NN_weights_best_%s_%s_finetune"%(args.further_mode, args.axis_num))
                 pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
@@ -243,7 +258,10 @@ if __name__ == "__main__":
     print("NN:", "NONE")
     print("Error rate:", np.array(history_error_ratio_val).min(), "at index", np.array(history_error_ratio_val).argmin())
 
-    torch.save(model.eval(), "../models/NN_weights_%s_%s"%(args.further_mode, args.axis_num))
+    if not args.finetune:
+        torch.save(model.eval(), "../models/NN_weights_%s_%s"%(args.further_mode, args.axis_num))
+    else:
+        torch.save(model.eval(), "../models/NN_weights_%s_%s_finetune"%(args.further_mode, args.axis_num))
     #embed()
 
 

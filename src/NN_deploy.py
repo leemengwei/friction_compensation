@@ -130,6 +130,7 @@ if __name__ == "__main__":
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     parser.add_argument('--no_cuda', action='store_true', default=False)
     args = parser.parse_args()
+    args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][args.axis_num-1]
     cuda_is_available = torch.cuda.is_available()
     if args.no_cuda:
         cuda_is_available = False

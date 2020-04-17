@@ -98,7 +98,10 @@ def get_data(args, mode):
     print("On axis %s, with local index %s"%(args.axis_num, local_axis_num))
     #Train time mode:
     if "train" in mode:
-        quick_path = "../data/tmp_del/quick_%s.pkl"%args.pool_name
+        if not args.finetune:
+            quick_path = "../data/tmp_del/quick_%s.pkl"%args.pool_name.strip('/')
+        else:
+            quick_path = "../data/tmp_del/quick_finetune_%s.pkl"%args.pool_name.strip('/')
         #Quick or Normal?
         if os.path.exists(quick_path) and args.Quick_data:
             print("Reading from quick data: %s"%quick_path)
@@ -145,8 +148,6 @@ def get_data(args, mode):
         print("Reading data", args.data_path)
         datas = pd.read_csv(args.data_path, sep=' ', low_memory=False, index_col=None)
         datas = datas.drop(datas.shape[0]-1).astype(float)
-        #if args.Quick_data:
-        #    datas = pickle.load(open(quick_path, 'rb'))[:100000]
         try:
             datas = datas.drop('line', axis=1)
         except:
