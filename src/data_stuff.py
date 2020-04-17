@@ -205,11 +205,19 @@ class normalizer(object):
         self._X_std_never_touch_dynamic = X.std(axis=1)+1e-9
         self._Y_mean_never_touch_dynamic = np.array([Y.mean()])
         self._Y_std_never_touch_dynamic = np.array([Y.std()+1e-9])
+        self.X = X
+        self.Y = Y
     def generate_statistics(self):
         np.savetxt("../statistics/X_mean_%s"%self.axis_num, self._X_mean_never_touch_dynamic, fmt='%.12f')
         np.savetxt("../statistics/X_std_%s"%self.axis_num, self._X_std_never_touch_dynamic, fmt='%.12f')
         np.savetxt("../statistics/Y_mean_%s"%self.axis_num, self._Y_mean_never_touch_dynamic, fmt='%.12f')
         np.savetxt("../statistics/Y_std_%s"%self.axis_num, self._Y_std_never_touch_dynamic, fmt='%.12f')
+    def generate_raw_secure(self):
+        raw_secure_range = np.array([self.X.min(axis=1), self.X.max(axis=1)])
+        np.savetxt("../statistics/X_secure_%s"%self.axis_num, raw_secure_range, fmt='%.12f')
+    def get_raw_secure(self):
+        raw_secure_range = np.loadtxt("../statistics/X_secure_%s"%self.axis_num)
+        return raw_secure_range
     def get_statistics(self, X_shape):
         static_X_mean_never_touch_dynamic = np.loadtxt("../statistics/X_mean_%s"%self.axis_num)
         static_X_std_never_touch_dynamic = np.loadtxt("../statistics/X_std_%s"%self.axis_num)

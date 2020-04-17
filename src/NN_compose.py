@@ -15,6 +15,16 @@ import copy
 import plot_utils
 warnings.filterwarnings("ignore")
 
+def judge_secure(raw_data_X, raw_secure_range):
+    raw_data_range = np.array([raw_data_X.min(axis=1),raw_data_X.max(axis=1)])
+    safe_status = (raw_data_range[0,:]>=raw_secure_range[0,:]).all() and (raw_data_range[1,:]<=raw_secure_range[1,:]).all()
+    if safe_status is True:
+        return
+    else:
+        print("!!!!!!!!!!!!!!!!!!!!!!!REJECTION!!!!!!!!!!!!!!!!!!\nThe training data not overlapping testing!")
+        sys.exit()
+
+
 def get_part_model(shape_X, name, axis_num):
     model_path = "../models_save/NN_weights_best_%s_%s"%(name, axis_num)
     print("Loading part model:%s"%model_path)
@@ -61,6 +71,8 @@ def get_data_six(args, raw_plan, mode):
     #Normalize data:
     normer = data_stuff.normalizer(raw_data_X, raw_data_Y, args)
     normer.get_statistics(raw_data_X.shape[1])
+    raw_secure_range = normer.get_raw_secure()
+    judge_secure(raw_data_X, raw_secure_range)
     normed_data_X, normed_data_Y = normer.normalize_XY(raw_data_X, raw_data_Y)
     return normed_data_X, normed_data_Y, normer
 
