@@ -184,7 +184,10 @@ if __name__ == "__main__":
 
     response_surface = True
     if response_surface and args.VISUALIZATION:
-        plot_utils.response_surface(model_returned, inputs)
+        fig = plt.figure(figsize=(16,9))
+        axe = fig.add_subplot(1,1,1,projection='3d')
+        plot_utils.response_surface(axe, model_returned, inputs)
+        plt.show()
 
 
 
