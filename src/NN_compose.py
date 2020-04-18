@@ -1,5 +1,6 @@
 #coding: utf-8
 #python NN_deploy.py  -V --mode='low_high'
+import sys
 import argparse
 import torch
 import torch.nn as nn
@@ -13,113 +14,8 @@ import warnings
 import time
 import copy
 import plot_utils
+from NN_test import *
 warnings.filterwarnings("ignore")
-
-def judge_secure(raw_data_X, raw_secure_range):
-    raw_data_range = np.array([raw_data_X.min(axis=1),raw_data_X.max(axis=1)])
-    safe_status = (raw_data_range[0,:]>=raw_secure_range[0,:]).all() and (raw_data_range[1,:]<=raw_secure_range[1,:]).all()
-    if safe_status is True:
-        return
-    else:
-        print("!!!!!!!!!!!!!!!!!!!!!!!REJECTION!!!!!!!!!!!!!!!!!!\nThe training data not overlapping testing!")
-        sys.exit()
-
-
-def get_part_model(shape_X, name, axis_num):
-    model_path = "../models_save/NN_weights_best_%s_%s"%(name, axis_num)
-    print("Loading part model:%s"%model_path)
-    #model = torch.load(model_path, map_location=torch.device(device_type))
-    #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
-    model = NN_model.NeuralNetSimple(input_size=shape_X, hidden_size=shape_X*5, hidden_depth=3, output_size=1, device=torch.device(device_type))
-    model.load_state_dict(torch.load(model_path).state_dict())
-    model = model.to(device_type)
-    return model
-
-def to_C(args, model_part1, model_part2, inputs):
-    if 'all' not in args.mode:
-        name1 = args.mode.split('_')[0]     #'acc'
-        name2 = args.mode.split('_')[1]     #'uniform'
-    else:   # 'acc_uniform_all', 'low_high_all'
-        name1 = args.mode.split('_')[-1]    #'all'
-        name2 = args.mode.split('_')[-1]    #'all' as well
-    #Trace with jit:
-    model_part1.eval()
-    model_part2.eval()
-    traced_module1 = torch.jit.trace(model_part1, inputs)
-    traced_module2 = torch.jit.trace(model_part2, inputs)
-    model1_path = "../models/NN_weights_%s_C.pt"%name1
-    model2_path = "../models/NN_weights_%s_C.pt"%name2
-    traced_module1.save(model1_path)
-    traced_module2.save(model2_path)
-    print("C models saved")
-
-def get_data_six(args, raw_plan, mode):
-    #Take out what we need:
-    #Make inputs:
-    raw_data_X = np.empty(shape=(0, len(raw_plan)))
-    input_columns_names = []
-    #data are index from 0, thus
-    local_axis_num = args.axis_num - 1
-    input_columns_names += ['axc_pos_%s'%local_axis_num]
-    input_columns_names += ['axc_speed_%s'%local_axis_num]
-    input_columns_names += ['axc_torque_ffw_gravity_%s'%local_axis_num]
-    input_columns_names += ['axc_torque_ffw_%s'%local_axis_num]
-    input_columns_names += ['Temp']
-    raw_data_X = raw_plan[input_columns_names].values.T
-    raw_data_Y = raw_plan['need_to_compensate'].values
-   
-    #Normalize data:
-    normer = data_stuff.normalizer(raw_data_X, raw_data_Y, args)
-    normer.get_statistics(raw_data_X.shape[1])
-    raw_secure_range = normer.get_raw_secure()
-    judge_secure(raw_data_X, raw_secure_range)
-    normed_data_X, normed_data_Y = normer.normalize_XY(raw_data_X, raw_data_Y)
-    return normed_data_X, normed_data_Y, normer
-
-def get_model_six(args, shape_X):
-    #Get model:
-    assert 'all' in args.mode, "I assume this is new version which train acc uniform together as all"
-    model = get_part_model(shape_X, args.mode.split('_')[-1], args.axis_num)    #'all'
-    return model
-
-def get_compensate_force(args, normed_data_X, normed_data_Y, model_part1, model_part2, part1_index, part2_index):
-    #Forward to get output:
-    inputs = torch.FloatTensor(normed_data_X.T).to(device_type)
-    output_part1 = model_part1(inputs[part1_index]).detach().cpu().numpy()
-    output_part2 = model_part2(inputs[part2_index]).detach().cpu().numpy()
-
-    #Speed test:
-    #if args.speed_test:
-    #    inputs[:,:]=1
-    #    #On default device:
-    #    for i in range(10): 
-    #        model_part1(inputs[:args.buffer_length])
-    #    tic = time.time() 
-    #    for i in range(1000): 
-    #        model_part1(inputs[:args.buffer_length])
-    #    print((time.time()-tic)/1000*1000, "ms on %s"%device_type)  
-    #    #On cpu deivce:
-    #    cpu_model = copy.deepcopy(model_part1).cpu()
-    #    cpu_inputs = inputs.cpu()
-    #    for i in range(10): 
-    #        cpu_model(cpu_inputs[:args.buffer_length])
-    #    tic = time.time() 
-    #    for i in range(1000): 
-    #        cpu_model(cpu_inputs[:args.buffer_length])
-    #    print((time.time()-tic)/1000*1000, "ms on cpu")  
-
-    #import my_analyzer
-    #my_analyzer.performance_shape(raw_plan, inputs, model_part1)
-    #Compose together:
-    #TODO: solve the switch point.
-    output_full_series = np.zeros(normed_data_X.shape[1])
-    output_full_series[part1_index] = output_part1.reshape(-1)
-    output_full_series[part2_index] = output_part2.reshape(-1)
-
-    #Save for Production:
-    to_C(args, model_part1.cpu(), model_part2.cpu(), inputs.cpu())
-    model_returned = model_part1
-    return output_full_series, inputs
 
 
 if __name__ == "__main__":
@@ -139,10 +35,10 @@ if __name__ == "__main__":
     if args.no_cuda:
         cuda_is_available = False
     if not cuda_is_available:
-        device_type = 'cpu'
+        args.device_type = 'cpu'
         print("Using cpu")
     else:
-        device_type = 'cuda'
+        args.device_type = 'cuda'
         print("Using gpu")
     mode = ['deploy', args.mode]
 
@@ -156,13 +52,13 @@ if __name__ == "__main__":
     for temp_axis in range(1,7):
         args.axis_num = temp_axis
         raw_plans_dict[temp_axis], part1_index_dict[temp_axis], part2_index_dict[temp_axis] = data_stuff.get_data(args, mode)
-        normed_data_X_dict[temp_axis], normed_data_Y_dict[temp_axis], normer_dict[temp_axis] = get_data_six(args, raw_plans_dict[temp_axis], mode)
+        normed_data_X_dict[temp_axis], normed_data_Y_dict[temp_axis], normer_dict[temp_axis] = get_data_one(args, raw_plans_dict[temp_axis], mode)
 
     #Get models:
     models_dict = {}
     for temp_axis in range(1,7):
         args.axis_num = temp_axis
-        model = get_model_six(args, normed_data_X_dict[temp_axis].shape[0])
+        model,_ = get_model_one(args, normed_data_X_dict[temp_axis].shape[0])
         models_dict[temp_axis] = model
    
     #Forwards:

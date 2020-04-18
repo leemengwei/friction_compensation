@@ -7,8 +7,8 @@
 #python NN_train.py  --mode=low_high -Q --further_mode=low
 #python NN_train.py  --mode=low_high -Q --further_mode=high
 
-
 #coding:utf-8
+import sys
 import time
 from IPython import embed
 import numpy as np
