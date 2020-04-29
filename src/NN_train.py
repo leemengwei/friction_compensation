@@ -219,7 +219,7 @@ if __name__ == "__main__":
         scheduler.step(error_ratio_val)
         print("Using lr:", optimizer.state_dict()['param_groups'][0]['lr'])
         model.eval()
-        if epoch>1:
+        if epoch>3:
             if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
                 if not args.finetune:
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
@@ -229,7 +229,7 @@ if __name__ == "__main__":
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
         #Always save figure:
-        plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
+        #plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
         history_error_ratio_val.append(error_ratio_val)
         #Train/Val then:
         train_loss, train_outputs, train_targets = train(args, model, device, train_loader, optimizer, epoch)

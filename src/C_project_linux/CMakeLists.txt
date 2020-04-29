@@ -3,7 +3,7 @@ project(custom_ops)
 
 set(name "C_load_and_run_API")
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_PREFIX_PATH "/mfs/home/limengwei/friction_compensation/src/C_project_setups/libtorch_cuda")
+set(CMAKE_PREFIX_PATH "../C_project_setups/libtorch_cuda")
 
 find_package(Torch REQUIRED)
 
