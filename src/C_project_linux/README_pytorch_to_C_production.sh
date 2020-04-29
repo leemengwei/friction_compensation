@@ -7,7 +7,7 @@
 #From scratch build:
 #ExternalPrerequest:
 #cmake
-#gcc
+#g++
 #build-essential     (g++)
 
 
