@@ -142,7 +142,8 @@ if __name__ == "__main__":
 
     #Normalize data:
     normer = data_stuff.normalizer(data_X, data_Y, args)
-    normer.generate_statistics()
+    if not args.finetune:
+        normer.generate_statistics()
     normer.get_statistics(data_X.shape[1])
     normer.generate_raw_secure()
     X_normed, Y_normed = normer.normalize_XY(data_X, data_Y)
