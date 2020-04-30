@@ -30,6 +30,7 @@ if __name__ == "__main__":
     parser.add_argument('--data_path', type=str, default = "../data/standard_path/realtime-20200326-171651.rec-data-testzhixian.prb-log")
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     parser.add_argument('--no_cuda', action='store_true', default=False)
+    parser.add_argument('--model_path', default=None)
     args = parser.parse_args()
     cuda_is_available = torch.cuda.is_available()
     if args.no_cuda:

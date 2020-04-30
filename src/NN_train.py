@@ -96,8 +96,8 @@ if __name__ == "__main__":
         args.pool_name = "data-j%s"%args.axis_num
     else:
         print("Running as finetune and restart, ignore validate loss which is trival")
-        args.pool_name = "standard_path/"
-        args.learning_rate *= 0.01
+        args.pool_name = "finetune_path/"
+        args.learning_rate *= 0.1
         args.test_ratio = 0.05
         args.restart_model_path = "../models/NN_weights_best_all_%s"%args.axis_num
     args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][args.axis_num-1]
