@@ -189,7 +189,8 @@ if __name__ == "__main__":
     np.savetxt("../output/NN_compensation.txt", compensate_full_series)
     print("Done")
 
-    response_surface = True
+    #response_surface = True
+    response_surface = False
     if response_surface and args.VISUALIZATION:
         fig = plt.figure(figsize=(16,9))
         axe = fig.add_subplot(1,1,1,projection='3d')

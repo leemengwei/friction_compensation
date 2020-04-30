@@ -189,10 +189,14 @@ if __name__ == "__main__":
     output_size = nn_Y_train.shape[1]
     model = NN_model.NeuralNetSimple(input_size, hidden_size, hidden_depth, output_size, device)
     if args.finetune:
+        print("Loading resume model:", args.restart_model_path)
         model.load_state_dict(torch.load(args.restart_model_path).state_dict())
-    #optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        #embed()
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=7, factor=0.7)
+    if not args.finetune:
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5)
+    else:
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=1e9, factor=0.7)
     print(model)
 
     #embed()
@@ -220,18 +224,20 @@ if __name__ == "__main__":
         scheduler.step(error_ratio_val)
         print("Using lr:", optimizer.state_dict()['param_groups'][0]['lr'])
         model.eval()
+        print("Train set error ratio:", error_ratio_train)
+        print("Validate set error ratio:", error_ratio_val)
         if not args.finetune:
-            if epoch>3:
+            if epoch>1:
                 if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
+                    print("saved")
         else:
-            if epoch>1:
+            if epoch>0:
                 if train_error_history[-1] < np.array(train_error_history[:-1]).min():
                     #validate loss is not refered to as its very few.
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s_finetune"%(args.further_mode, args.axis_num))
+                    print("saved")
         pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
-        print("Train set error ratio:", error_ratio_train)
-        print("Validate set error ratio:", error_ratio_val)
         #Always save figure:
         #plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
         history_error_ratio_val.append(error_ratio_val)

@@ -42,6 +42,7 @@ def split_dataset(args, X, Y, raw_data):
     for center_around in centers_around:
         val_index += list(range(int(len(Y)*(center_around-args.test_ratio/(2*split_of_validation))), int(len(Y)*(center_around+args.test_ratio/(2*split_of_validation)))))
     train_index = list(set(all_index) - set(val_index))
+    print(len(train_index), 'for train,', len(val_index), 'for val')
     X_train = X[:, train_index]
     Y_train = Y[train_index]
     X_val = X[:, val_index]
@@ -86,10 +87,8 @@ def get_data(args, mode):
         local_axis_num = args.axis_num - 1
         #TODO: try another balance method, a backward one.
         assert "train" in mode, "data balance is called only in train mode"
-        compensator = 0.9   #to make sure all data at fastest routine (yet turbulent) are kept.
-        #只有train才会有balance，所以可以用servo feedback, No, back to axc's:
-        #chance_to_stay = np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num])/(np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num]).max()*compensator)
-        chance_to_stay = np.tile(100, len(uniform_index))
+        chance_to_stay = np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num])/np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num]).max() + 0.15 #15% lowest chance
+        #chance_to_stay = np.tile(100, len(uniform_index))
         which_to_stay = np.where(np.random.random(len(chance_to_stay)) < chance_to_stay)[0]
         uniform_index_balanced = list(np.array(uniform_index)[which_to_stay])
         return uniform_index_balanced

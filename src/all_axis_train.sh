@@ -1,10 +1,10 @@
 #/bin/bash
 
-python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=2 --num_of_batch=10000 --max_epoch=-2 >& 2.log
-python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=3 --num_of_batch=10000 --max_epoch=-2 >& 3.log
-python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=4 --num_of_batch=10000 --max_epoch=-2 >& 4.log
-python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=5 --num_of_batch=10000 --max_epoch=-2 >& 5.log
-python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=1 --num_of_batch=10000 --max_epoch=-2 >& 1.log
+python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=2 --num_of_batch=10000 --max_epoch=9 >& 2.log
+python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=3 --num_of_batch=10000 --max_epoch=9 >& 3.log
+python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=4 --num_of_batch=10000 --max_epoch=9 >& 4.log
+python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=5 --num_of_batch=10000 --max_epoch=9 >& 5.log
+python NN_train.py --mode=acc_uniform --further_mode=all --Quick_data --axis_num=1 --num_of_batch=10000 --max_epoch=9 >& 1.log
 
 #for((i=2;i<=5;i++))
 #do
