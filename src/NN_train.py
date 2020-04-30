@@ -224,8 +224,10 @@ if __name__ == "__main__":
                 if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
         else:
-            #validate loss is not refered to as its very few.
-            torch.save(model.eval(), "../models/NN_weights_best_%s_%s_finetune"%(args.further_mode, args.axis_num))
+            if epoch>1:
+                if train_error_history[-1] < np.array(train_error_history[:-1]).min():
+                    #validate loss is not refered to as its very few.
+                    torch.save(model.eval(), "../models/NN_weights_best_%s_%s_finetune"%(args.further_mode, args.axis_num))
         pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
