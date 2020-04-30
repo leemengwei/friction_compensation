@@ -32,7 +32,7 @@ def get_part_model(args, shape_X, name, axis_num):
     #model = torch.load(model_path, map_location=torch.device(device_type))
     #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
     model = NN_model.NeuralNetSimple(input_size=shape_X, hidden_size=shape_X*5, hidden_depth=3, output_size=1, device=torch.device(args.device_type))
-    model.load_state_dict(torch.load(model_path).state_dict())
+    model.load_state_dict(torch.load(model_path, map_location=torch.device(args.device_type)).state_dict())
     model = model.to(args.device_type)
     return model
 
@@ -88,7 +88,6 @@ def get_compensate_force(args, normed_data_X, normed_data_Y, model_part1, model_
     inputs = torch.FloatTensor(normed_data_X.T).to(args.device_type)
     output_part1 = model_part1(inputs[part1_index]).detach().cpu().numpy()
     output_part2 = model_part2(inputs[part2_index]).detach().cpu().numpy()
-
     #Speed test:
     #if args.speed_test:
     #    inputs[:,:]=1
