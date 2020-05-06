@@ -196,7 +196,7 @@ if __name__ == "__main__":
     if not args.finetune:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5)
     else:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=1e9, factor=0.7)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=30, factor=0.7)
     print(model)
 
     #embed()
@@ -227,16 +227,16 @@ if __name__ == "__main__":
         print("Train set error ratio:", error_ratio_train)
         print("Validate set error ratio:", error_ratio_val)
         if not args.finetune:
-            if epoch>1:
+            if epoch>=1:
                 if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
-                    print("saved")
+                    print("***MODEL SAVED***")
         else:
             if epoch>0:
                 if train_error_history[-1] < np.array(train_error_history[:-1]).min():
                     #validate loss is not refered to as its very few.
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s_finetune"%(args.further_mode, args.axis_num))
-                    print("saved")
+                    print("***MODEL SAVED***")
         pd.DataFrame(np.vstack((predicted_val, np.array(nn_Y_val. detach().cpu()).reshape(-1))).T,  columns=['predicted','target']).to_csv("../output/best_val_predicted_vs_target.csv", index=None)
         #Always save figure:
         #plot_utils.visual(nn_Y_val, predicted_val, 'NN', args, title=error_ratio_val, epoch=epoch)
@@ -267,12 +267,15 @@ if __name__ == "__main__":
     names_note = "NN weights"
     print("Names note:", names_note)
     print("NN:", "NONE")
-    print("Error rate:", np.array(history_error_ratio_val).min(), "at index", np.array(history_error_ratio_val).argmin())
-
     if not args.finetune:
-        torch.save(model.eval(), "../models/NN_weights_%s_%s"%(args.further_mode, args.axis_num))
+        print("Error rate:", np.array(history_error_ratio_val).min(), "at index", np.array(history_error_ratio_val).argmin())
     else:
-        torch.save(model.eval(), "../models/NN_weights_%s_%s_finetune"%(args.further_mode, args.axis_num))
+        pass
+
+    #if not args.finetune:
+    #    torch.save(model.eval(), "../models/NN_weights_%s_%s"%(args.further_mode, args.axis_num))
+    #else:
+    #    torch.save(model.eval(), "../models/NN_weights_%s_%s_finetune"%(args.further_mode, args.axis_num))
     #embed()
 
 

@@ -102,13 +102,14 @@ if __name__ == "__main__":
     #plt.ion(
     fig = plt.figure(figsize=(16,9))
     length_of_plot = args.time_to_plot
+    normed_speed = (raw_plans_dict[5]['servo_feedback_speed_%s'%local_axis_num])/max(raw_plans_dict[5]['servo_feedback_speed_%s'%local_axis_num])*max(meassured_dict[temp_axis])
     for temp_axis in range(1,7):
         axes.append(fig.add_subplot(2,3,temp_axis))
         args.axis_num = temp_axis
         local_axis_num = args.axis_num - 1
         axes[temp_axis-1].plot(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', alpha=0.5)
         axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=1, alpha=0.5)
-        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part1_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='green', s=1)
+        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', color='green', s=1)
         axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=1)
         axes[temp_axis-1].legend()
         axes[temp_axis-1].set_title("Axis:{2:d}, Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated_dict[temp_axis], error_original_dict[temp_axis], int(temp_axis)))
@@ -120,18 +121,18 @@ if __name__ == "__main__":
     plt.close()
 
     #Response surface:
-    axes = []
-    fig = plt.figure(figsize=(16,9))
-    from mpl_toolkits.mplot3d import Axes3D
-    for temp_axis in range(1,7):
-        axes.append(fig.add_subplot(2,3,temp_axis,projection='3d'))
-        args.axis_num = temp_axis
-        plot_utils.response_surface(axes[temp_axis-1], models_dict[temp_axis], inputs_dict[temp_axis])
-        np.savetxt("../output/NN_compensation_%s.txt"%temp_axis, compensate_full_series_dict[temp_axis])
-    plt.savefig("../pngs/response_surf.png",dpi=500)
-    if args.VISUALIZATION:
-        plt.show()
-    plt.close()
+    #axes = []
+    #fig = plt.figure(figsize=(16,9))
+    #from mpl_toolkits.mplot3d import Axes3D
+    #for temp_axis in range(1,7):
+    #    axes.append(fig.add_subplot(2,3,temp_axis,projection='3d'))
+    #    args.axis_num = temp_axis
+    #    plot_utils.response_surface(axes[temp_axis-1], models_dict[temp_axis], inputs_dict[temp_axis], plot=False)
+    #    np.savetxt("../output/NN_compensation_%s.txt"%temp_axis, compensate_full_series_dict[temp_axis])
+    #plt.savefig("../pngs/response_surf.png",dpi=500)
+    #if args.VISUALIZATION:
+    #    plt.show()
+    #plt.close()
 
     print("Original: %s,\n Treated: %s"%(error_original_dict, error_treated_dict))
     print("Done")

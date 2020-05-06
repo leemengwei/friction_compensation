@@ -17,7 +17,7 @@ import plot_utils
 warnings.filterwarnings("ignore")
 
 def judge_features_secure(args, raw_data_X, raw_secure_range, input_columns_names):
-    raw_data_range = np.array([raw_data_X.min(axis=1),raw_data_X.max(axis=1)])
+    raw_data_range = np.array([np.abs(raw_data_X).min(axis=1), np.abs(raw_data_X).max(axis=1)])
     safe_matrix = np.array([raw_data_range[0,:]>=raw_secure_range[0,:], raw_data_range[1,:]<=raw_secure_range[1,:]])
     if safe_matrix.all() == True:
         return
@@ -27,7 +27,7 @@ def judge_features_secure(args, raw_data_X, raw_secure_range, input_columns_name
         print("Features Testing on:\n", raw_data_range, "\nFeatures Safe range:\n", raw_secure_range, "\nFeatures secure matrix:\n", safe_matrix)
 
 def get_part_model(args, shape_X, name, axis_num):
-    model_path = "../models_save/NN_weights_best_%s_%s"%(name, axis_num) if args.model_path is None else args.model_path
+    model_path = "../models/NN_weights_best_%s_%s"%(name, axis_num) if args.model_path is None else args.model_path
     print("Loading part model:%s"%model_path)
     #model = torch.load(model_path, map_location=torch.device(device_type))
     #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     if args.VISUALIZATION:
         plt.plot(meassured, label=r'real_target', alpha=0.5)
         plt.scatter(range(len(raw_plan)), planned, label=r'dynamic_model+gravity', color='gray', s=1, alpha=0.5)
-        plt.scatter(part1_index, compensated[part1_index], label=r'after compensate', color='green', s=1)
+        plt.scatter(part1_index, compensated[part1_index], label=r'speed', color='green', s=1)
         plt.scatter(part2_index, compensated[part2_index], label=r'after compensate', color='red', s=1)
         plt.legend()
         plt.title("Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated, error_original))
