@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     parser.add_argument('--no_cuda', action='store_true', default=False)
     parser.add_argument('--model_path', default=None)
+    parser.add_argument('--finetune', action='store_true', default=False)
     args = parser.parse_args()
     cuda_is_available = torch.cuda.is_available()
     if args.no_cuda:
@@ -102,15 +103,22 @@ if __name__ == "__main__":
     #plt.ion(
     fig = plt.figure(figsize=(16,9))
     length_of_plot = args.time_to_plot
-    normed_speed = (raw_plans_dict[5]['servo_feedback_speed_%s'%local_axis_num])/max(raw_plans_dict[5]['servo_feedback_speed_%s'%local_axis_num])*max(meassured_dict[temp_axis])
     for temp_axis in range(1,7):
         axes.append(fig.add_subplot(2,3,temp_axis))
         args.axis_num = temp_axis
         local_axis_num = args.axis_num - 1
-        axes[temp_axis-1].plot(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', alpha=0.5)
-        axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=1, alpha=0.5)
-        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', color='green', s=1)
-        axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=1)
+        normed_pos = (raw_plans_dict[temp_axis]['axc_pos_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_pos_%s'%local_axis_num]))*args.rated_torque
+        normed_speed = (raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num]))*args.rated_torque
+        normed_ffw_gravity = raw_plans_dict[temp_axis]['axc_torque_ffw_gravity_%s'%local_axis_num]
+        normed_ffw = raw_plans_dict[temp_axis]['axc_torque_ffw_%s'%local_axis_num]
+        axes[temp_axis-1].plot(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', alpha=0.5, linewidth=0.2)
+        axes[temp_axis-1].plot(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', alpha=0.5, linewidth=0.2)
+        axes[temp_axis-1].plot(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', linewidth=0.2)
+        #inputs:
+        #axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_pos[:length_of_plot], label=r'pos', s=0.2, alpha=0.5)
+        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', s=0.2, alpha=0.5)
+        #axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_ffw_gravity[:length_of_plot], label=r'ffw_gravity', s=0.2, alpha=0.5)
+        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', s=0.2, alpha=0.5)
         axes[temp_axis-1].legend()
         axes[temp_axis-1].set_title("Axis:{2:d}, Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated_dict[temp_axis], error_original_dict[temp_axis], int(temp_axis)))
         #print("One of the reason it may shows higher error rate than expected is because some uniform speed range be ommited during train/val evaluation")

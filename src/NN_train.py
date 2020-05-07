@@ -194,7 +194,7 @@ if __name__ == "__main__":
         #embed()
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
     if not args.finetune:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.7)
     else:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=30, factor=0.7)
     print(model)

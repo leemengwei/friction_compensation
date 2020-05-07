@@ -27,7 +27,10 @@ def judge_features_secure(args, raw_data_X, raw_secure_range, input_columns_name
         print("Features Testing on:\n", raw_data_range, "\nFeatures Safe range:\n", raw_secure_range, "\nFeatures secure matrix:\n", safe_matrix)
 
 def get_part_model(args, shape_X, name, axis_num):
-    model_path = "../models/NN_weights_best_%s_%s"%(name, axis_num) if args.model_path is None else args.model_path
+    if not args.finetune:
+        model_path = "../models/NN_weights_best_%s_%s"%(name, axis_num) if args.model_path is None else args.model_path
+    else:
+        model_path = "../models/NN_weights_best_%s_%s_finetune"%(name, axis_num) if args.model_path is None else args.model_path
     print("Loading part model:%s"%model_path)
     #model = torch.load(model_path, map_location=torch.device(device_type))
     #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
@@ -135,6 +138,7 @@ if __name__ == "__main__":
     parser.add_argument('--VISUALIZATION', "-V", action='store_true', default=False)
     parser.add_argument('--no_cuda', action='store_true', default=False)
     parser.add_argument('--model_path', default=None)
+    parser.add_argument('--finetune', action='store_true', default=False)
     args = parser.parse_args()
     args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][args.axis_num-1]
     cuda_is_available = torch.cuda.is_available()
