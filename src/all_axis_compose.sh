@@ -8,9 +8,9 @@
 #python NN_compose.py --data_path=../data/standard_path/realtime-20200413-151740-bi-low.rec-data.prb-log --time_to_plot=1500
 #python NN_compose.py --data_path=../data/standard_path/realtime-20200413-152042-bi-high.rec-data.prb-log --time_to_plot=1500
 #python NN_compose.py --data_path=../data/standard_path/realtime-20200413-163945-welding-high.rec-data.prb-log --time_to_plot=7500
-python NN_compose.py --data_path=../data/standard_path/realtime-20200414-184219.rec-data-shangxialiao-low.prb-log --time_to_plot=10000 --finetune 
+python NN_compose.py --data_path=../data/standard_path/realtime-20200414-184219.rec-data-shangxialiao-low.prb-log --time_to_plot=10000   --finetune 
 python NN_compose.py --data_path=../data/standard_path/realtime-20200414-185114.rec-data-shangxialiao-meduim.prb-log --time_to_plot=7500 --finetune
-python NN_compose.py --data_path=../data/standard_path/realtime-20200414-185858.rec-data-shangxialiao-high.prb-log --time_to_plot=2500 --finetune
+python NN_compose.py --data_path=../data/standard_path/realtime-20200414-185858.rec-data-shangxialiao-high.prb-log --time_to_plot=2500   --finetune
 
 
 
