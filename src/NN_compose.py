@@ -103,6 +103,9 @@ if __name__ == "__main__":
     #plt.ion(
     fig = plt.figure(figsize=(16,9))
     length_of_plot = args.time_to_plot
+    total_real = np.zeros(shape=length_of_plot)
+    raw_total_error = np.zeros(shape=length_of_plot)
+    compensated_total_error = np.zeros(shape=length_of_plot)
     for temp_axis in range(1,7):
         axes.append(fig.add_subplot(2,3,temp_axis))
         args.axis_num = temp_axis
@@ -111,19 +114,28 @@ if __name__ == "__main__":
         normed_speed = (raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num]))*args.rated_torque
         normed_ffw_gravity = raw_plans_dict[temp_axis]['axc_torque_ffw_gravity_%s'%local_axis_num]
         normed_ffw = raw_plans_dict[temp_axis]['axc_torque_ffw_%s'%local_axis_num]
-        axes[temp_axis-1].plot(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', alpha=0.5, linewidth=0.2)
-        axes[temp_axis-1].plot(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', alpha=0.5, linewidth=0.2)
-        axes[temp_axis-1].plot(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', linewidth=0.2)
+        axes[temp_axis-1].scatter(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', s=0.2, alpha=0.5)
+        axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=0.2, alpha=0.5)
+        axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=0.2, alpha=0.5)
+        total_real += np.abs(meassured_dict[temp_axis][:length_of_plot])
+        raw_total_error += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])
+        compensated_total_error += np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])
         #inputs:
-        #axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_pos[:length_of_plot], label=r'pos', s=0.2, alpha=0.5)
-        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', s=0.2, alpha=0.5)
-        #axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_ffw_gravity[:length_of_plot], label=r'ffw_gravity', s=0.2, alpha=0.5)
-        axes[temp_axis-1].scatter(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', s=0.2, alpha=0.5)
+        axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', linewidth=0.2, alpha=0.5)
+        axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', linewidth=0.2, alpha=0.5)
+        axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], np.zeros(length_of_plot), label=r'zero', linewidth=0.2, alpha=0.5, color='k')
         axes[temp_axis-1].legend()
         axes[temp_axis-1].set_title("Axis:{2:d}, Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated_dict[temp_axis], error_original_dict[temp_axis], int(temp_axis)))
         #print("One of the reason it may shows higher error rate than expected is because some uniform speed range be ommited during train/val evaluation")
         fig.suptitle("Path name: %s"%args.data_path.split('/')[-1])
     plt.savefig("../pngs/%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
+    
+    plt.plot([0,length_of_plot], [0,0], label='ZERO', color='k')
+    plt.plot(total_real, label='REAL', color='k')
+    plt.plot(raw_total_error, label='RAW', color='blue')
+    plt.plot(compensated_total_error, label='COMP', color='r')
+    plt.savefig("../pngs/error_%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=100)
+
     if args.VISUALIZATION:
         plt.show()
     plt.close()
