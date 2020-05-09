@@ -138,7 +138,7 @@ if __name__ == "__main__":
     plt.plot(raw_total, label='RAW TOTAL', color='blue', linewidth=0.2)
     plt.plot(compensated_total, label='COMP TOTAL', color='r', linewidth=0.2)
     plt.legend()
-    plt.title("Overall benefit from %s%% to %s%%"%(np.round(np.abs(raw_total-total_real)/np.abs(total_real)*100,2).mean(), np.round(np.abs(compensated_total-total_real)/np.abs(total_real)*100,2)).mean())
+    plt.title("Overall benefit from %s%% to %s%%"%(np.round(np.abs(raw_total-total_real)/np.abs(total_real)*100,2), np.round(np.abs(compensated_total-total_real)/np.abs(total_real)*100,2).mean()))
     plt.savefig("../pngs/Overall_%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
 
     if args.VISUALIZATION:
