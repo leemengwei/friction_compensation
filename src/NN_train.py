@@ -194,9 +194,9 @@ if __name__ == "__main__":
         #embed()
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
     if not args.finetune:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.7)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=max(int(args.max_epoch/10),3), factor=0.7)
     else:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=30, factor=0.7)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=1e9, factor=0.7)
     print(model)
 
     #embed()
@@ -208,6 +208,7 @@ if __name__ == "__main__":
     train_error_history = []
     validate_error_history = []
     history_error_ratio_val = []
+    overall_error_history = []
     #This is for save gif, always on:
     if args.VISUALIZATION:
         plt.figure(figsize=(14, 8))
@@ -221,6 +222,7 @@ if __name__ == "__main__":
         _, _, error_ratio_val = evaluate.evaluate_error_rate(args, predicted_val, nn_Y_val, normer, raw_data_val, showup=False)
         train_error_history.append(error_ratio_train)
         validate_error_history.append(error_ratio_val)
+        overall_error_history.append((error_ratio_train+error_ratio_val).mean())
         scheduler.step(error_ratio_val)
         print("Using lr:", optimizer.state_dict()['param_groups'][0]['lr'])
         model.eval()
@@ -228,7 +230,7 @@ if __name__ == "__main__":
         print("Validate set error ratio:", error_ratio_val)
         if not args.finetune:
             if epoch>=1:
-                if validate_error_history[-1] < np.array(validate_error_history[:-1]).min():
+                if overall_error_history[-1] < np.array(overall_error_history[:-1]).min():
                     torch.save(model.eval(), "../models/NN_weights_best_%s_%s"%(args.further_mode, args.axis_num))
                     print("***MODEL SAVED***")
         else:

@@ -44,7 +44,7 @@ class SelfAttention(nn.Module):
     def forward(self, x, middle_outputs):
         # (B, H) -> (B, H)
         energy = self.projection(x)
-        weights = F.softmax(energy.squeeze(-1), dim=1)
+        weights = F.softmax(energy.squeeze(-1), dim=1).to(self.device)
         # (B, H) * (B, H) -> (B, H)
         outputs = middle_outputs * weights
         return outputs

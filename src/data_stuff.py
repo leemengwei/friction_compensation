@@ -89,7 +89,7 @@ def get_data(args, mode):
         assert "train" in mode, "data balance is called only in train mode"
         if not args.finetune:
             print("Training from scratch, balancing...")
-            chance_to_stay = np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num])/np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num]).max() + 15 #15% lowest chance
+            chance_to_stay = np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num])/np.abs(datas.iloc[uniform_index]['axc_speed_%s'%local_axis_num]).max() + 0.15 #15% lowest chance
         else:
             print("Training finetune, using all...")
             chance_to_stay = np.tile(100, len(uniform_index))

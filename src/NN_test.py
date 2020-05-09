@@ -32,8 +32,7 @@ def get_part_model(args, shape_X, name, axis_num):
     else:
         model_path = "../models/NN_weights_best_%s_%s_finetune"%(name, axis_num) if args.model_path is None else args.model_path
     print("Loading part model:%s"%model_path)
-    #model = torch.load(model_path, map_location=torch.device(device_type))
-    #model = NN_model.NeuralNet(input_size=25, hidden_size=25, hidden_depth=3, output_size=1, device=torch.device(device_type))
+    #model = torch.load(model_path, map_location=torch.device(args.device_type))
     model = NN_model.NeuralNetSimple(input_size=shape_X, hidden_size=shape_X*5, hidden_depth=3, output_size=1, device=torch.device(args.device_type))
     model.load_state_dict(torch.load(model_path, map_location=torch.device(args.device_type)).state_dict())
     model = model.to(args.device_type)
@@ -49,8 +48,8 @@ def to_C(args, model_part1, model_part2, inputs):
     #Trace with jit:
     model_part1.eval()
     model_part2.eval()
-    traced_module1 = torch.jit.trace(model_part1, inputs)
-    traced_module2 = torch.jit.trace(model_part2, inputs)
+    traced_module1 = torch.jit.trace(model_part1.cpu(), inputs.cpu())
+    traced_module2 = torch.jit.trace(model_part2.cpu(), inputs.cpu())
     model1_path = "../models/NN_weights_%s_C_%s.pt"%(name1, args.axis_num)
     model2_path = "../models/NN_weights_%s_C_%s.pt"%(name2, args.axis_num)
     traced_module1.save(model1_path)

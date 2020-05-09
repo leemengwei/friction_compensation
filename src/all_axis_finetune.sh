@@ -1,10 +1,11 @@
 #/bin/bash
 
-#python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=5 --num_of_batch=100 --max_epoch=24 --finetune --learning_rate=0.05 >& 5_finetune.log
-python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=2 --num_of_batch=100 --max_epoch=24 --finetune --learning_rate=0.000005 >& 2_finetune.log
-python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=3 --num_of_batch=100 --max_epoch=24 --finetune --learning_rate=0.00005 >& 3_finetune.log
-python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=4 --num_of_batch=100 --max_epoch=24 --finetune --learning_rate=0.00000000005 >& 4_finetune.log
-python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=1 --num_of_batch=100 --max_epoch=24 --finetune >& 1_finetune.log
+python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=5 --num_of_batch=1000 --max_epoch=24 --finetune --learning_rate=0.05 >& 5_finetune.log
+python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=2 --num_of_batch=1000 --max_epoch=24 --finetune --learning_rate=0.000005 >& 2_finetune.log
+python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=3 --num_of_batch=1000 --max_epoch=24 --finetune --learning_rate=0.00005 >& 3_finetune.log
+python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=4 --num_of_batch=1000 --max_epoch=24 --finetune --learning_rate=0.00000000005 >& 4_finetune.log
+python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=6 --num_of_batch=1000 --max_epoch=24 --finetune >& 6_finetune.log
+python NN_train.py --mode=acc_uniform --further_mode=all --axis_num=1 --num_of_batch=1000 --max_epoch=24 --finetune >& 1_finetune.log
 
 #for((i=2;i<=5;i++))
 #do
