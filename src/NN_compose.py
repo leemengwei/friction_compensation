@@ -75,6 +75,7 @@ if __name__ == "__main__":
     error_treated_dict = {}
     for temp_axis in range(1,7):
         args.axis_num = temp_axis
+        args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][temp_axis-1]
         args.rated_torques = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143]
         #Note evaluation take place with normed data, and then denormed within.
         error_original_dict[temp_axis], _, error_treated_dict[temp_axis] = evaluate.evaluate_error_rate(args, output_full_series_dict[temp_axis], normed_data_Y_dict[temp_axis], normer_dict[temp_axis], raw_plans_dict[temp_axis], showup=False)
