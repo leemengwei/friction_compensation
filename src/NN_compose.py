@@ -105,8 +105,8 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(16,9))
     length_of_plot = args.time_to_plot
     total_real = np.zeros(shape=length_of_plot)
-    raw_total_error = np.zeros(shape=length_of_plot)
-    compensated_total_error = np.zeros(shape=length_of_plot)
+    raw_total = np.zeros(shape=length_of_plot)
+    compensated_total = np.zeros(shape=length_of_plot)
     for temp_axis in range(1,7):
         axes.append(fig.add_subplot(2,3,temp_axis))
         args.axis_num = temp_axis
@@ -119,8 +119,8 @@ if __name__ == "__main__":
         axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=0.2, alpha=0.5)
         axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=0.2, alpha=0.5)
         total_real += np.abs(meassured_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
-        raw_total_error += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
-        compensated_total_error += np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])/args.rated_torques[local_axis_num]
+        raw_total += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
+        compensated_total+= np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])/args.rated_torques[local_axis_num]
         #inputs:
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', linewidth=0.2, alpha=0.5)
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', linewidth=0.2, alpha=0.5)
@@ -132,12 +132,14 @@ if __name__ == "__main__":
     plt.savefig("../pngs/%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
     
 
-    plt.figure(figsize=(12,7))
+    plt.figure(figsize=(18,9))
     plt.plot([0,length_of_plot], [0,0], label='ZERO', color='k')
-    plt.plot(total_real, label='REAL', color='k')
-    plt.plot(raw_total_error, label='RAW', color='blue')
-    plt.plot(compensated_total_error, label='COMP', color='r')
-    plt.savefig("../pngs/error_%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=100)
+    plt.plot(total_real, label='REAL TOTAL', color='k', linewidth=0.2)
+    plt.plot(raw_total, label='RAW TOTAL', color='blue', linewidth=0.2)
+    plt.plot(compensated_total, label='COMP TOTAL', color='r', linewidth=0.2)
+    plt.legend()
+    plt.title("Overall benefit from %s%% to %s%%"%(np.round(np.abs(raw_total-total_real)/np.abs(total_real)*100,2).mean(), np.round(np.abs(compensated_total-total_real)/np.abs(total_real)*100,2)).mean())
+    plt.savefig("../pngs/Overall_%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
 
     if args.VISUALIZATION:
         plt.show()
