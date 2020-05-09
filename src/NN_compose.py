@@ -115,20 +115,25 @@ if __name__ == "__main__":
         normed_speed = (raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num]))*args.rated_torques[local_axis_num]
         normed_ffw_gravity = raw_plans_dict[temp_axis]['axc_torque_ffw_gravity_%s'%local_axis_num]
         normed_ffw = raw_plans_dict[temp_axis]['axc_torque_ffw_%s'%local_axis_num]
-        axes[temp_axis-1].scatter(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', s=0.2, alpha=0.5)
-        axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=0.2, alpha=0.5)
-        axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=0.2, alpha=0.5)
+        #plot
+        axes[temp_axis-1].scatter(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', s=0.2, alpha=0.5, color='k')
+        axes[temp_axis-1].scatter(list(range(len(planned_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='blue', s=0.2, alpha=0.5)
+        axes[temp_axis-1].scatter(list(range(len(compensated_dict[temp_axis])))[:length_of_plot], compensated_dict[temp_axis][:length_of_plot], label=r'after compensate', color='red', s=0.2, alpha=0.5)
         total_real += np.abs(meassured_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
-        raw_total += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
-        compensated_total+= np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])/args.rated_torques[local_axis_num]
+        raw_total += np.abs(planned_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
+        compensated_total+= np.abs(compensated_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
+        #errros with respect to axis:
+        raw_e = np.abs(planned_dict[temp_axis][:length_of_plot] - meassured_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
+        comp_e = np.abs(compensated_dict[temp_axis][:length_of_plot] - meassured_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
         #inputs:
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', linewidth=0.2, alpha=0.5)
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', linewidth=0.2, alpha=0.5)
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], np.zeros(length_of_plot), label=r'zero', linewidth=0.2, alpha=0.5, color='k')
+        axes[temp_axis-1].scatter(raw_e.argmax(), compensated_dict[temp_axis][:length_of_plot][raw_e.argmax()], marker='*', color='blue')
+        axes[temp_axis-1].scatter(comp_e.argmax(), compensated_dict[temp_axis][:length_of_plot][comp_e.argmax()], marker='*', color='red')
         axes[temp_axis-1].legend()
-        axes[temp_axis-1].set_title("Axis:{2:d}, Error treated: {0:.2f}%, original:{1:.2f}%".format(error_treated_dict[temp_axis], error_original_dict[temp_axis], int(temp_axis)))
-        #print("One of the reason it may shows higher error rate than expected is because some uniform speed range be ommited during train/val evaluation")
-        fig.suptitle("Path name: %s"%args.data_path.split('/')[-1])
+        axes[temp_axis-1].set_title("Axis:{2:d}, Error treated: {0:.1f}%, original:{1:.1f}%,\n max E from {3:.3f}@{5:d} to {4:.3f}@{6:d}".format(error_treated_dict[temp_axis], error_original_dict[temp_axis], int(temp_axis), raw_e.max(), comp_e.max(), raw_e.argmax(), comp_e.argmax()))
+        fig.suptitle("Path name: %s"%(args.data_path.split('/')[-1]))
     plt.savefig("../pngs/%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
     
 
@@ -138,7 +143,11 @@ if __name__ == "__main__":
     plt.plot(raw_total, label='RAW TOTAL', color='blue', linewidth=0.5)
     plt.plot(compensated_total, label='COMP TOTAL', color='r', linewidth=0.5)
     plt.legend()
-    plt.title("Overall benefit from %s%% to %s%%"%(np.round((np.abs(raw_total-total_real)/np.abs(total_real)*100).mean(),2), np.round((np.abs(compensated_total-total_real)/np.abs(total_real)*100).mean(),2)))
+    raw_error = np.abs(raw_total-total_real)
+    comp_error = np.abs(compensated_total-total_real)
+    plt.scatter(comp_error.argmax(), compensated_total[comp_error.argmax()], marker='*', color='red')
+    plt.scatter(raw_error.argmax(), raw_total[raw_error.argmax()], marker='*', color='blue')
+    plt.title("Overall benefit from %s%% to %s%%, max_E from %s@(%s) to %s@(%s)"%(np.round((raw_error/np.abs(total_real)*100).mean(),2), np.round((comp_error/np.abs(total_real)*100).mean(),2), raw_error.max(), raw_error.argmax(), comp_error.max(), comp_error.argmax()))
     plt.savefig("../pngs/Overall_%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
 
     if args.VISUALIZATION:
