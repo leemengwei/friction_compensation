@@ -120,7 +120,7 @@ if __name__ == "__main__":
         axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=0.2, alpha=0.5)
         total_real += np.abs(meassured_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
         raw_total_error += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
-        compensated_total_error += np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])/arg.rated_torques[local_axis_num]
+        compensated_total_error += np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])/args.rated_torques[local_axis_num]
         #inputs:
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', linewidth=0.2, alpha=0.5)
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', linewidth=0.2, alpha=0.5)
