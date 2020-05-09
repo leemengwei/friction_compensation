@@ -75,7 +75,7 @@ if __name__ == "__main__":
     error_treated_dict = {}
     for temp_axis in range(1,7):
         args.axis_num = temp_axis
-        args.rated_torque = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143][temp_axis-1]
+        args.rated_torques = [5.7, 5.7, 1.02, 0.318, 0.318, 0.143]
         #Note evaluation take place with normed data, and then denormed within.
         error_original_dict[temp_axis], _, error_treated_dict[temp_axis] = evaluate.evaluate_error_rate(args, output_full_series_dict[temp_axis], normed_data_Y_dict[temp_axis], normer_dict[temp_axis], raw_plans_dict[temp_axis], showup=False)
 
@@ -110,16 +110,16 @@ if __name__ == "__main__":
         axes.append(fig.add_subplot(2,3,temp_axis))
         args.axis_num = temp_axis
         local_axis_num = args.axis_num - 1
-        normed_pos = (raw_plans_dict[temp_axis]['axc_pos_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_pos_%s'%local_axis_num]))*args.rated_torque
-        normed_speed = (raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num]))*args.rated_torque
+        normed_pos = (raw_plans_dict[temp_axis]['axc_pos_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_pos_%s'%local_axis_num]))*args.rated_torques[local_axis_num]
+        normed_speed = (raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num])/max(np.abs(raw_plans_dict[temp_axis]['axc_speed_%s'%local_axis_num]))*args.rated_torques[local_axis_num]
         normed_ffw_gravity = raw_plans_dict[temp_axis]['axc_torque_ffw_gravity_%s'%local_axis_num]
         normed_ffw = raw_plans_dict[temp_axis]['axc_torque_ffw_%s'%local_axis_num]
         axes[temp_axis-1].scatter(list(range(len(meassured_dict[temp_axis])))[:length_of_plot], meassured_dict[temp_axis][:length_of_plot], label=r'real_target', s=0.2, alpha=0.5)
         axes[temp_axis-1].scatter(list(range(len(raw_plans_dict[temp_axis])))[:length_of_plot], planned_dict[temp_axis][:length_of_plot], label=r'dynamic_model+gravity', color='gray', s=0.2, alpha=0.5)
         axes[temp_axis-1].scatter(part2_index_dict[temp_axis][:length_of_plot], compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot], label=r'after compensate', color='red', s=0.2, alpha=0.5)
-        total_real += np.abs(meassured_dict[temp_axis][:length_of_plot])
-        raw_total_error += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])
-        compensated_total_error += np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])
+        total_real += np.abs(meassured_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
+        raw_total_error += np.abs(meassured_dict[temp_axis][:length_of_plot] - planned_dict[temp_axis][:length_of_plot])/args.rated_torques[local_axis_num]
+        compensated_total_error += np.abs(compensated_dict[temp_axis][part2_index_dict[temp_axis]][:length_of_plot])/arg.rated_torques[local_axis_num]
         #inputs:
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_speed[:length_of_plot], label=r'speed', linewidth=0.2, alpha=0.5)
         axes[temp_axis-1].plot(part1_index_dict[temp_axis][:length_of_plot], normed_ffw[:length_of_plot], label=r'ffw', linewidth=0.2, alpha=0.5)
@@ -130,6 +130,8 @@ if __name__ == "__main__":
         fig.suptitle("Path name: %s"%args.data_path.split('/')[-1])
     plt.savefig("../pngs/%s"%args.data_path.split('/')[-1].replace('prb-log','png'), dpi=500)
     
+
+    plt.figure(figsize=(12,7))
     plt.plot([0,length_of_plot], [0,0], label='ZERO', color='k')
     plt.plot(total_real, label='REAL', color='k')
     plt.plot(raw_total_error, label='RAW', color='blue')
