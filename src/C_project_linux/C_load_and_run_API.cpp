@@ -1,7 +1,7 @@
 #define NUM_OF_COLS 5   //feature dims
 #define NUM_OF_ROWS 1   //buffer length
 #define LOOP 1000
-#define TIME_INTERVAL 0   //ms
+#define TIME_INTERVAL 6   //ms
 #define WARM_UP_TIME_SINGLE 100
 #define WARM_UP_TIME_MULTI 100
 #define REFRESH_CACHE false
@@ -90,7 +90,7 @@ torch::jit::script::Module get_model(const char* model_path, bool use_cuda) {
     ;
   }
   catch (const c10::Error& e) {
-    std::cerr << "Error loading the model\n";
+    std::cerr << "Error loading the model "<<model_path;
     exit(-1);
   }
   cout<<"Model loaded:"<<model_path<<endl;
@@ -410,7 +410,7 @@ int main(int argc, const char* argv[]) {
   //single_speed_test_loop(flat, X_mean, X_standard, use_cuda, model, Y_mean, Y_standard, final_out);
 
   //---------------------------Multi_threads speed test---------------------:
-  //threads_start_speed_test_all_in_one(use_cuda);
+  threads_start_speed_test_all_in_one(use_cuda);
 
 }
 

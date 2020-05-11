@@ -41,20 +41,21 @@ def get_part_model(args, shape_X, name, axis_num):
 def to_C(args, model_part1, model_part2, inputs):
     if 'all' not in args.mode:
         name1 = args.mode.split('_')[0]     #'acc'
-        name2 = args.mode.split('_')[1]     #'uniform'
+        #name2 = args.mode.split('_')[1]     #'uniform'
     else:   # 'acc_uniform_all', 'low_high_all'
         name1 = args.mode.split('_')[-1]    #'all'
-        name2 = args.mode.split('_')[-1]    #'all' as well
+        #name2 = args.mode.split('_')[-1]    #'all' as well
     #Trace with jit:
     model_part1.eval()
-    model_part2.eval()
+    #model_part2.eval()
     traced_module1 = torch.jit.trace(model_part1.cpu(), inputs.cpu())
-    traced_module2 = torch.jit.trace(model_part2.cpu(), inputs.cpu())
+    #traced_module2 = torch.jit.trace(model_part2.cpu(), inputs.cpu())
     model1_path = "../models/NN_weights_%s_C_%s.pt"%(name1, args.axis_num)
-    model2_path = "../models/NN_weights_%s_C_%s.pt"%(name2, args.axis_num)
+    #model2_path = "../models/NN_weights_%s_C_%s.pt"%(name2, args.axis_num)
     traced_module1.save(model1_path)
-    traced_module2.save(model2_path)
-    print("C models saved", model1_path, model2_path)
+    #traced_module2.save(model2_path)
+    #print("C models saved", model1_path, model2_path)
+    print("C models saved:", model1_path)
 
 def get_data_one(args, raw_plan, mode):
     #Take out what we need:

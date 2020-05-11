@@ -215,9 +215,9 @@ if __name__ == "__main__":
     for epoch in range(int(args.max_epoch+1)):
         print("Epoch: %s"%epoch, "TEST AND SAVE FIRST")
         #Test first:
-        #Push ALL data together through the network
-        predicted_train = np.array(model((nn_X_train.to(device))).detach().cpu()).reshape(-1)
-        predicted_val = np.array(model((nn_X_val.to(device))).detach().cpu()).reshape(-1)
+        #Push ALL data together through the network -- wtf just doesn't make sense GPU will explode, all on cpu now.
+        predicted_train = np.array(model.cpu()(nn_X_train.cpu()).detach().cpu()).reshape(-1)
+        predicted_val = np.array(model.cpu()(nn_X_val.cpu()).detach().cpu()).reshape(-1)
         _, _, error_ratio_train = evaluate.evaluate_error_rate(args, predicted_train, nn_Y_train, normer, raw_data_train, showup=False)
         _, _, error_ratio_val = evaluate.evaluate_error_rate(args, predicted_val, nn_Y_val, normer, raw_data_val, showup=False)
         train_error_history.append(error_ratio_train)
