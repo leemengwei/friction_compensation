@@ -8,6 +8,10 @@
 #python NN_train.py  --mode=low_high -Q --further_mode=high
 
 #coding:utf-8
+from pycallgraph import PyCallGraph
+from pycallgraph.output import GraphvizOutput
+
+
 import sys
 import time
 from IPython import embed
@@ -73,7 +77,7 @@ def validate(args, model, device, validate_loader):
     validate_loss_mean = LOSS/len(validate_loader.dataset)
     return validate_loss_mean, output, target
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='Friction.')
     parser.add_argument('--learning_rate', '-LR', type=float, default=5e-2)
     parser.add_argument('--test_ratio', '-TR', type=float, default=0.2)
@@ -280,4 +284,9 @@ if __name__ == "__main__":
     #    torch.save(model.eval(), "../models/NN_weights_%s_%s_finetune"%(args.further_mode, args.axis_num))
     #embed()
 
+if __name__ == "__main__":
+    graphviz = GraphvizOutput()
+    graphviz.output_file = 'basic.png'
+    with PyCallGraph(output=graphviz):
+        main()
 
